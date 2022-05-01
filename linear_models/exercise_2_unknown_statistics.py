@@ -10,7 +10,7 @@ from scipy.ndimage.interpolation import shift
 def Least_Mean_Square(x_stack, y, alpha, max_iter, w):
     """
     :param np.arryr x_stack : x[k]
-    :param np.array y : data_y
+    :param np.array y : reference data_y
     :param float alpha: learning rate
     :param int max_iter: number of iterations
     :param np.array w : weight vector
@@ -34,7 +34,7 @@ def Least_Mean_Square(x_stack, y, alpha, max_iter, w):
 def Normlized_LMS(x_stack, y, alpha, max_iter, w):
     """
     :param np.arryr x_stack : x[k]
-    :param np.array y : data_y
+    :param np.array y : reference data_y
     :param float alpha: learning rate
     :param int max_iter: number of iterations
     :param np.array w : weight vector

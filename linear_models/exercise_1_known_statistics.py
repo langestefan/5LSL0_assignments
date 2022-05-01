@@ -17,19 +17,20 @@ def steepest_gradient_descent(R_x, r_yx, alpha, max_iter, w_init):
     :param int max_iter: number of iterations
     :param np.array w_init(3, 1): initial weight vector
     """
-    # initialize weights
-    w = w_init
-
     # initialize weights history
     w_history = np.zeros((max_iter, 3))
 
+    # initialize weights
+    w_history[0, :] = w_init.T
+    w = w_init
+
     # compute sgd
-    for i in range(max_iter):
+    for i in range(max_iter - 1):
         # update weights
         w = w + 2*alpha*(r_yx - np.dot(R_x, w))
 
         # store weights
-        w_history[[i], :] = w.T
+        w_history[[i+1], :] = w.T
 
     return w_history
 
@@ -43,22 +44,23 @@ def newtons_method(R_x, r_yx, alpha, max_iter, w_init):
     :param int max_iter: number of iterations
     :param np.array w_init(3, 1): initial weight vector
     """
-    # initialize weights
-    w = w_init
-
     # initialize weights history
     w_history = np.zeros((max_iter, 3))
+
+    # initialize weights
+    w_history[0, :] = w_init.T
+    w = w_init
 
     # compute R_x^-1
     R_x_inv = np.linalg.inv(R_x)
 
     # compute newtons method
-    for i in range(max_iter):
+    for i in range(max_iter - 1):
         # update weights
         w = w + 2*alpha*np.dot(R_x_inv, (r_yx - np.dot(R_x, w)))
 
         # store weights
-        w_history[[i], :] = w.T
+        w_history[[i+1], :] = w.T
 
     return w_history
 
@@ -98,7 +100,7 @@ if __name__ == "__main__":
     w_3_const = -0.5 # for countourplots
     w_init = np.zeros((3, 1))
     N = data.shape[0]
-    alpha = 0.1
+    alpha = 0.01
 
     # autocorrelation and cross-correlation matrices
     r_yx = np.array([[1, 5.3, -3.9]]).T 

@@ -65,7 +65,7 @@ def newtons_method(R_x, r_yx, alpha, max_iter, w_init):
     return w_history
 
 # contour plot function
-def contour_plot(w0, w1, w_train, J_vals, title, filename):
+def contour_plot(w0, w1, w_train, J_vals, title, filename, show=False):
 
     # plot the contour plot
     fig = plt.figure()
@@ -78,8 +78,9 @@ def contour_plot(w0, w1, w_train, J_vals, title, filename):
 
     # plot optimal weights as point in contourplot
     plt.plot(0.2, 1, 'x', color='red', markersize=10)
-    plt.show()
 
+    if show:
+        plt.show()
 
     # save figure as png
     figure_name = f"linear_models/figures/{filename}.png"
@@ -100,7 +101,7 @@ if __name__ == "__main__":
     w_3_const = -0.5 # for countourplots
     w_init = np.zeros((3, 1))
     N = data.shape[0]
-    alpha = 0.01
+    alpha = 0.12
 
     # autocorrelation and cross-correlation matrices
     r_yx = np.array([[1, 5.3, -3.9]]).T 
@@ -137,7 +138,3 @@ if __name__ == "__main__":
     contour_plot(W0, W1, w_newton, J_vals,
         title=f"Newton's Method Contour Plot for alpha = {alpha}",
         filename=f"newtons_method_contour_plot_alpha_{alpha}")
-
-
-
-

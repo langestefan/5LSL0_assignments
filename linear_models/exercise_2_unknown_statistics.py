@@ -29,36 +29,30 @@ def Least_Mean_Square(x_stack, y, alpha, max_iter, w):
 
     return w
 
-# =============================================================================
-# # compute NLMS algorithm for N iterations  
-# # w[k+1] = w[k] + 2*alpha/ (x_var^2) *x[k]e[k]
-# def Normlized_LMS(R_x, r_yx, alpha, max_iter, w_init):
-#     """ 
-#     :param np.array(3, 3) R_x: autocorrelation matrix
-#     :param np.array r_yx(3, 1): cross-correlation vector
-#     :param float alpha: learning rate
-#     :param int max_iter: number of iterations
-#     :param np.array w_init(3, 1): initial weight vector
-#     """
-#     # initialize weights
-#     w = w_init
-# 
-#     # initialize weights history
-#     w_history = np.zeros((max_iter, 3))
-# 
-#     # compute R_x^-1
-#     R_x_inv = np.linalg.inv(R_x)
-# 
-#     # compute newtons method
-#     for i in range(max_iter):
-#         # update weights
-#         w = w + 2*alpha*np.dot(R_x_inv, (r_yx - np.dot(R_x, w)))
-# 
-#         # store weights
-#         w_history[[i], :] = w.T
-# 
-#     return w_history
-# =============================================================================
+# compute NLMS algorithm for N iterations  
+# w[k+1] = w[k] + 2*alpha/ (sigma) *x[k]e[k]
+def Normlized_LMS(x_stack, y, alpha, max_iter, w):
+    """
+    :param np.arryr x_stack : x[k]
+    :param np.array y : data_y
+    :param float alpha: learning rate
+    :param int max_iter: number of iterations
+    :param np.array w : weight vector
+    """
+
+    # compute nlms
+    for i in range(1, max_iter):
+        weight = w[i-1].T
+        x_k = x_stack[i].T
+        y_hat = np.dot(weight.T,x_k)
+        error = data_y[i]-y_hat
+        sigma = np.dot(x_k,x_k.T)/3 + 0.01
+        #update weights
+        weight_new = weight + 2*(alpha/sigma)*np.dot(x_k,error)
+        #stroe weight
+        w[i] = weight_new   
+
+    return w
 
 # contour plot function
 def contour_plot(w0, w1, w_train, J_vals, title, filename):
@@ -104,6 +98,9 @@ if __name__ == "__main__":
     # apply mean square error
     w_lms = Least_Mean_Square(x_stack, data_y, alpha, N, w)
 
+    # apply normalized mean square error
+    w_nlms = Normlized_LMS(x_stack, data_y, alpha, N, w)
+
     # Plot the trajectory of the filter coefficients as they evolve, together with a contour
     # plot of the objective function J. 
     w0 = np.linspace(-0.5, 0.5, 100)
@@ -121,4 +118,9 @@ if __name__ == "__main__":
     contour_plot(W0, W1, w_lms, J_vals, 
         title=f"LMS Contour Plot for alpha = {alpha}", 
         filename=f"LMS_contour_plot_alpha_{alpha}")
+    
+    # plot the contour plot for NLMS
+    contour_plot(W0, W1, w_nlms, J_vals,
+        title=f"NLMS Contour Plot for alpha = {alpha}",
+        filename=f"NLMS_contour_plot_alpha_{alpha}")
 

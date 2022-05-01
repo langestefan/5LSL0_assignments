@@ -17,7 +17,7 @@ R_x = np.array([[5., -1., -2.], [-1., 5., -1.], [-2., -1., 5.]])
 r_yx = np.array([1, 5.3, -3.9]).T
 
 #prepare parameters for later use
-iterations = 1000
+iterations = 5000
 x_stack = np.vstack((data_x, shift(data_x,1), shift(data_x,2))).T
 w =np.zeros((iterations,3))
 J = np.zeros((iterations,1))
@@ -31,20 +31,21 @@ for i in range (1,iterations):
     w[i] = weight_new
     
 # make coutour plot    
-w0 = np.linspace(-3.0, 3.0, 100)
-w1 = np.linspace(-3.0, 3.0, 100)
+w0 = np.linspace(-0.5, 0.5, 100)
+w1 = np.linspace(-0.1, 1.5, 100)
 W0,W1 = np.meshgrid(w0, w1)
 J_vals = np.zeros((len(W0),len(W1)))
 
-for i, value1 in enumerate(w0):
-    for j, value2 in enumerate(w1):
-        w_temp = np.array((value1, value2,-0.5)).T
-        J_vals[i, j] =  mean_squared_error(data_y,np.dot(x_stack,w_temp()))
+for i in range(len(W0)):
+    for j in range(len(W1)):
+        w_temp = np.array([W0[0,i], W1[j,0], -0.5]).T
+        J_vals[i,j] =  mean_squared_error(data_y,np.dot(x_stack,w_temp))
                                            
 fig = plt.figure()
-plt.contour(w0, w1, J_vals, linewidth = 1, colors = 'black')
+cp = plt.contour(w0, w1, J_vals)
+plt.clabel(cp, inline=1, fontsize=10)
 plt.plot(w[:,0], w[:,1])
-ax.set_title('SGD Contours Plot')
-ax.set_xlabel('w0')
-ax.set_ylabel('w1')
+plt.title('SGD Contours Plot with adaption rate = 0.001')
+plt.xlabel('w0')
+plt.ylabel('w1')
 plt.show()

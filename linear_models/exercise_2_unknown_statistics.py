@@ -56,35 +56,45 @@ def Normlized_LMS(x_stack, y, alpha, max_iter, w):
 
 # compute RLS algorithm for N iterations  
 # w[k+1] = np.dot(inv(R_x_hat), r_yx_hat)
-def RLS(x_stack, y, gamma, delta_inv, max_iter, w):
+def RLS(x_stack, y, gamma, delta_inv, max_iter, w_init):
     """
     :param np.arryr x_stack : x[k]
     :param np.array y : reference data_y
     :param float gamma: forgetting factor
     :param float delta_inv: inverse of the auto-correlation matrix of x[k]
     :param int max_iter: number of iterations
-    :param np.array w : weight vector
+    :param np.array w_init : weight vector
     """
-    # parameter initialization
+    # initialize weights history
+    w_history = np.zeros((max_iter, 3))
+
+    # initialize weights
+    w_history[0, :] = w_init.T
+
+    # initialize auto-correlation matrix
     R_x_inv = delta_inv * np.identity(3)
-    r_yx_hat = np.zeros((3,1))
+    r_yx = np.zeros((3, 1))
 
-        # compute RLS
-    for i in range(1, max_iter):
-        
-        x_k = x_stack[i].T        
-        g = np.dot(R_x_inv, x_stack[i]) / (gamma**2 + np.dot(np.dot(x_k.T, R_x_inv), x_k))
+    # compute parameters
+    for i in range(max_iter-1):
+
+        # input/output data    
+        x_k = x_stack[[i]].T
+        y_k = y[i]
+
+        # calculate parameters
+        g = np.dot(R_x_inv, x_k) / (gamma**2 + np.dot(np.dot(x_k.T, R_x_inv), x_k))
         R_x_inv = gamma**(-2) * (R_x_inv - np.dot(np.dot(g, x_k.T), R_x_inv))
-        r_yx_pre = np.array([np.dot(x_k.T, y[i])])
-        r_yx_hat = np.multiply(gamma**2 , r_yx_hat)  + r_yx_pre.T
-        
-        #update weights
-        weight_new = np.dot(R_x_inv,r_yx_hat)
-       
-        #stroe weight
-        w[i] = weight_new.T   
+        r_yx = (gamma**2)*r_yx + x_k*y_k
 
-    return w
+        # update weights
+        w = np.dot(R_x_inv, r_yx)        
+
+        # store weights
+        w_history[[i+1], :] = w.T
+
+    return w_history
+
     
 # contour plot function
 def contour_plot(w0, w1, w_train, J_vals, title, filename):
@@ -102,9 +112,8 @@ def contour_plot(w0, w1, w_train, J_vals, title, filename):
     plt.plot(0.2, 1, 'x', color='red', markersize=10)
     plt.show()
 
-
     # save figure as png
-    figure_name = f"figures/{filename}.png"
+    figure_name = f"linear_models/figures/{filename}.png"
     fig.savefig(figure_name, dpi=300)
 
 
@@ -123,22 +132,23 @@ if __name__ == "__main__":
     # initialize the filter
     w_3_const = -0.5 # for countourplots    
     N = data.shape[0]
-    w = np.zeros((N, 3))
+    w_init = np.zeros((3, 1))
 
     # set parameters for each algorithm
     alpha = 0.0001
     gamma = 1 - 1e-4
-    delta_inv = 0.01
+    delta_inv = 0.001
     
         
-    """    # apply mean square error
+    """    
+    # apply mean square error
     w_lms = Least_Mean_Square(x_stack, data_y, alpha, N, w)
 
     # apply normalized mean square error
-    w_nlms = Normlized_LMS(x_stack, data_y, alpha, N, w) """
-
+    w_nlms = Normlized_LMS(x_stack, data_y, alpha, N, w) 
+    """
     # apply RLS
-    w_RLS = RLS(x_stack, data_y, gamma, delta_inv, N, w)
+    w_RLS = RLS(x_stack, data_y, gamma, delta_inv, N, w_init)
 
     # Plot the trajectory of the filter coefficients as they evolve, together with a contour
     # plot of the objective function J. 
@@ -153,7 +163,8 @@ if __name__ == "__main__":
             w_temp = np.array([W0[0, i], W1[j, 0], w_3_const]).T
             J_vals[i, j] =  mean_squared_error(data_y, np.dot(x_stack, w_temp))
 
-    """     # plot the contour plot for LMS
+    """     
+    # plot the contour plot for LMS
     contour_plot(W0, W1, w_lms, J_vals, 
         title=f"LMS Contour Plot for alpha = {alpha}", 
         filename=f"LMS_contour_plot_alpha_{alpha}")

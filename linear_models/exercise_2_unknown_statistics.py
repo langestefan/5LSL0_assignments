@@ -113,7 +113,7 @@ def contour_plot(w0, w1, w_train, J_vals, title, filename):
     plt.show()
 
     # save figure as png
-    figure_name = f"linear_models/figures/{filename}.png"
+    figure_name = f"5LSL0_assignments/linear_models/figures/{filename}.png"
     fig.savefig(figure_name, dpi=300)
 
 
@@ -136,7 +136,7 @@ if __name__ == "__main__":
 
     # set parameters for each algorithm
     alpha = 0.0001
-    gamma = 1 - 1e-4
+    gamma = 1 - 1e-2
     delta_inv = 0.001
     
         
@@ -176,5 +176,5 @@ if __name__ == "__main__":
     """
     # plot the contour plot for RLS
     contour_plot(W0, W1, w_RLS, J_vals,
-        title=f"RLS Contour Plot for delta_inv = {delta_inv}",
-        filename=f"RLS_contour_plot_delta_inv_{delta_inv}")
+        title=f"RLS Contour Plot for gamma = {gamma}",
+        filename=f"RLS_contour_plot_gamma_{gamma}")

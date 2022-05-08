@@ -1,13 +1,13 @@
-# %% imports
 # pytorch
 import torch
 from torchvision import transforms,datasets
-from torch.utils.data import Dataset,DataLoader
+from torch.utils.data import Dataset, DataLoader
+from torch.utils.data import random_split
 
 # pyplot
 import matplotlib.pyplot as plt
 
-# %% Noisy MNIST dataset
+# Noisy MNIST dataset
 class Noisy_MNIST(Dataset):
     # initialization of the dataset
     def __init__(self, split, data_loc, noise=0.5):
@@ -29,19 +29,18 @@ class Noisy_MNIST(Dataset):
             data = Clean_MNIST.data.unsqueeze(1)
         else:
             data = Clean_MNIST.data.unsqueeze(1)
-            idx = torch.load('intro_pytorch/data/test_idx.tar')
-            data[:,:] = data[idx,:]
-            
+            idx = torch.load(self.data_loc + '/test_idx.tar')
+            data[:, :] = data[idx, :]
+           
         
         # reshape and normalize
         resizer = transforms.Resize(32)
-        resized_data = resizer(data)*1.0
-        normalized_data = 2 *(resized_data/255) - 1
-        #normalized_data = (resized_data - 33)/74
+        resized_data = resizer(data) * 1.0
+        normalized_data = 2 * (resized_data/255) - 1
         
         # create the data
         self.Clean_Images = normalized_data
-        self.Noisy_Images = normalized_data + torch.randn(normalized_data.size())*self.noise
+        self.Noisy_Images = normalized_data + torch.randn(normalized_data.size()) * self.noise
         self.Labels       = Clean_MNIST.targets
     
     # return the number of examples in this dataset
@@ -50,26 +49,30 @@ class Noisy_MNIST(Dataset):
     
     # create a a method that retrieves a single item form the dataset
     def __getitem__(self, idx):
-        clean_image = self.Clean_Images[idx,:,:,:]
-        noisy_image = self.Noisy_Images[idx,:,:,:]
+        clean_image = self.Clean_Images[idx, :, :, :]
+        noisy_image = self.Noisy_Images[idx, :, :, :]
         label =  self.Labels[idx]
         
-        return clean_image,noisy_image,label
+        return clean_image, noisy_image, label
     
-# %% dataloader for the Noisy MNIST dataset
+# dataloader for the Noisy MNIST dataset
 def create_dataloaders(data_loc, batch_size):
     Noisy_MNIST_train = Noisy_MNIST("train", data_loc)
     Noisy_MNIST_test  = Noisy_MNIST("test" , data_loc)
-    
-    Noisy_MNIST_train_loader =  DataLoader(Noisy_MNIST_train, batch_size=batch_size, shuffle=True,  drop_last=False)
-    Noisy_MNIST_test_loader  =  DataLoader(Noisy_MNIST_test , batch_size=batch_size, shuffle=False, drop_last=False)
-    
-    return Noisy_MNIST_train_loader, Noisy_MNIST_test_loader
 
-# %% test if the dataloaders work
+    # create validation set
+    train_set, valid_set = random_split(Noisy_MNIST_train, [50000, 10000])
+    
+    Noisy_MNIST_train_loader =  DataLoader(train_set, batch_size=batch_size, shuffle=True,  drop_last=False)
+    Noisy_MNIST_valid_loader =  DataLoader(valid_set, batch_size=batch_size, shuffle=False, drop_last=False)
+    Noisy_MNIST_test_loader  =  DataLoader(Noisy_MNIST_test, batch_size=batch_size, shuffle=False, drop_last=False)
+
+    return Noisy_MNIST_train_loader, Noisy_MNIST_valid_loader, Noisy_MNIST_test_loader
+
+# test if the dataloaders work
 if __name__ == "__main__":
     # define parameters
-    data_loc = 'intro_pytorch/data' # change the datalocation to something that works for you
+    data_loc = 'assignment_1/intro_pytorch/data' # change the datalocation to something that works for you
     batch_size = 64
     
     # get dataloader

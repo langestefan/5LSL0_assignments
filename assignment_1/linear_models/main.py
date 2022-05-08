@@ -33,8 +33,9 @@ def contour_plot(w0, w1, w_train, J_vals, title, filename, show=True):
 
 def main():
     print(" ---- start ---- ")    
+
     # Load the data
-    data = pd.read_csv("assignment_1/linear_models/assignment1_data.csv")
+    data = pd.read_csv("assignment_1/linear_models/assignment1_data.csv", header=None)
 
     # split data into x and y
     data_x = np.array(data.iloc[:, 0])
@@ -45,7 +46,6 @@ def main():
     w_3_const = -0.5 # for countourplots
     w_init = np.zeros((3, 1))
     N = data.shape[0]
-
 
     # autocorrelation and cross-correlation matrices
     r_yx = np.array([[1, 5.3, -3.9]]).T 
@@ -67,7 +67,7 @@ def main():
             J_vals[i, j] =  mean_squared_error(data_y, np.dot(x_stack, w_temp))
 
     # select the algorithm to use
-    algorithm = "Newton"
+    algorithm = "SGD"
 
     # show plots during runtime
     show = True

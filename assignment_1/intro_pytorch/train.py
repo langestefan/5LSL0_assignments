@@ -1,5 +1,36 @@
 import torch
 
+import matplotlib.pyplot as plt
+def plot_examples(noisy_images, clean_images, num_examples=10):
+    """
+    Plots some examples from the dataloader.
+    -------
+    noisy_images: torch.Tensor
+        The noisy images
+    clean_images: torch.Tensor
+        The clean images
+    num_examples : int
+        Number of examples to plot.
+    """
+
+    # show the examples in a plot
+    plt.figure(figsize=(12, 3))
+
+    for i in range(num_examples):
+        plt.subplot(2, num_examples, i+1)
+        plt.imshow(noisy_images[i, 0, :, :], cmap='gray')
+        plt.xticks([])
+        plt.yticks([])
+        
+        plt.subplot(2, num_examples, i + num_examples + 1)
+        plt.imshow(clean_images[i, 0, :, :], cmap='gray')
+        plt.xticks([])
+        plt.yticks([])
+    
+    plt.tight_layout()
+    plt.savefig("data_examples.png", dpi=300, bbox_inches='tight')
+    plt.show()
+
 # calculate validation loss
 def calculate_loss(model, data_loader, criterion, device):
     """
@@ -82,6 +113,9 @@ def train_model(model, train_loader, valid_loader, optimizer, criterion, epochs,
         # set model to train mode
         model.train()
 
+        # initialize loss
+        train_loss = 0
+
         # loop over batches
         for batch_idx, (clean_images, noisy_images, labels) in enumerate(train_loader):
 
@@ -106,10 +140,20 @@ def train_model(model, train_loader, valid_loader, optimizer, criterion, epochs,
             loss.backward()
             optimizer.step()
 
+            # add loss to the total loss
+            train_loss += loss.item()
+
+            # print training loss
+            if batch_idx % 100 == 0:
+                print('Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}'.format(
+                    epoch, batch_idx * len(clean_images), len(train_loader.dataset),
+                    100. * batch_idx / len(train_loader), loss.item()))
+
+        # calculate training loss
+        train_loss /= len(train_loader)
 
         # calculate validation loss
         valid_loss = calculate_loss(model, valid_loader, criterion, device)
-        train_loss = calculate_loss(model, train_loader, criterion, device)
 
         print("Epoch: {}/{} ".format(epoch+1, epochs),
                 "Training Loss: {:.3f} ".format(train_loss),

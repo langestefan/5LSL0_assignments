@@ -1,5 +1,29 @@
 import torch.nn as nn
 import torch
+import numpy as np
+
+use_activation = True
+latent_size = 8*8
+
+
+# ReLU class wrapper from PyTorch nn.Module so we can easily use it in the model
+# see: https://www.kaggle.com/code/aleksandradeis/extending-pytorch-with-custom-activation-functions/notebook
+def relu(x):
+    """
+    Calculate element-wise Rectified Linear Unit (ReLU)
+    :param x: Input array
+    :return: Rectified output
+    """
+    return torch.max(x, torch.zeros_like(x))
+
+class customReLU(nn.Module):
+
+    def __init__(self):
+        super().__init__() # init the base class
+
+    def forward(self, input):
+        return relu(input) # apply custom ReLU
+
 
 # AutoEncoder model class
 class AutoEncoder(nn.Module): 
@@ -11,24 +35,38 @@ class AutoEncoder(nn.Module):
             nn.Flatten(),
             nn.Linear(32*32, 14*14)
         )
-        # dimensionality reduction 14x14 -> 7x7
+        # dimensionality reduction 14x14 -> 8x8
         self.fc2 = nn.Sequential(  
-            nn.Linear(14*14, 7*7)
+            nn.Linear(14*14, 8*8)
         )
-        # dimensionality increase 7x7 -> 14x14
+        # dimensionality increase 8x8 -> 14x14
         self.fc3 = nn.Sequential(    
-            nn.Linear(7*7, 14*14)
+            nn.Linear(8*8, 14*14)
         )        
-        # output is 1x28x28
+        # output is 1x32x32
         self.fc4 = nn.Sequential(    
-            nn.Linear(14*14, 32*32),               
-            nn.Flatten()
-        )      
-    
+            nn.Linear(14*14, 32*32), 
+        )    
+
+        # # activation function
+        # if use_activation:  
+        #     self.activation = customReLU()
+        # else:
+        #     self.activation = nn.Identity()
+
+        # self.fc1.append(self.activation)
+        # self.fc2.append(self.activation)
+        # self.fc3.append(self.activation)
+        # # self.fc4.append(self.activation) # don't put ReLU on the output layer!!!
+        # self.fc4.append(nn.Flatten())           
+            
     def forward(self, x): 
         x = self.fc1(x) 
+        x = relu(x)
         x = self.fc2(x)
+        x = relu(x)
         x = self.fc3(x)
+        x = relu(x)
         x = self.fc4(x)   
         return x
 

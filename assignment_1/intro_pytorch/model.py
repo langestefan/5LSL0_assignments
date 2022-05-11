@@ -39,6 +39,7 @@ class AutoEncoder(nn.Module):
         self.fc2 = nn.Sequential(  
             nn.Linear(14*14, 8*8)
         )
+        
         # dimensionality increase 8x8 -> 14x14
         self.fc3 = nn.Sequential(    
             nn.Linear(8*8, 14*14)
@@ -48,25 +49,23 @@ class AutoEncoder(nn.Module):
             nn.Linear(14*14, 32*32), 
         )    
 
-        # # activation function
-        # if use_activation:  
-        #     self.activation = customReLU()
-        # else:
-        #     self.activation = nn.Identity()
+        # activation function
+        if use_activation:  
+            self.activation = customReLU()
+        else:
+            self.activation = nn.Identity()
 
-        # self.fc1.append(self.activation)
-        # self.fc2.append(self.activation)
-        # self.fc3.append(self.activation)
-        # # self.fc4.append(self.activation) # don't put ReLU on the output layer!!!
-        # self.fc4.append(nn.Flatten())           
+        self.fc1.append(self.activation)
+        self.fc2.append(self.activation)
+        self.fc3.append(self.activation)
+        self.fc4.append(nn.Sigmoid())
+        # self.fc4.append(self.activation) # don't put ReLU on the output layer!!!
+        self.fc4.append(nn.Flatten())           
             
     def forward(self, x): 
         x = self.fc1(x) 
-        x = relu(x)
         x = self.fc2(x)
-        x = relu(x)
         x = self.fc3(x)
-        x = relu(x)
         x = self.fc4(x)   
         return x
 

@@ -30,8 +30,7 @@ class Noisy_MNIST(Dataset):
         else:
             data = Clean_MNIST.data.unsqueeze(1)
             idx = torch.load(self.data_loc + '/test_idx.tar')
-            data[:, :] = data[idx, :]
-           
+            data[:, :] = data[idx, :]           
         
         # reshape and normalize
         resizer = transforms.Resize(32)
@@ -42,6 +41,11 @@ class Noisy_MNIST(Dataset):
         self.Clean_Images = normalized_data
         self.Noisy_Images = normalized_data + torch.randn(normalized_data.size()) * self.noise
         self.Labels       = Clean_MNIST.targets
+
+        # print min and max of the dataset
+        print("Min:", self.Clean_Images.min())
+        print("Max:", self.Clean_Images.max())
+
     
     # return the number of examples in this dataset
     def __len__(self):

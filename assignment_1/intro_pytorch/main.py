@@ -174,7 +174,7 @@ def main():
     criterion = torch.nn.MSELoss()
 
     # use adam optimizer
-    optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate) #, weight_decay=1e-5)
+    optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate, weight_decay=1e-5)
 
     # RMSprop optimizer
     # optimizer = torch.optim.RMSprop(model.parameters(), lr=learning_rate, weight_decay=1e-2)
@@ -191,28 +191,28 @@ def main():
     _, (x_clean_example, x_noisy_example, labels_example) = next(examples)
     x_noisy_example = x_noisy_example.to(device)
 
-    # get the prediction
-    # untrained_prediction = model(x_noisy_example)
+    # # get the prediction
+    untrained_prediction = model(x_noisy_example)
 
     # # move back to cpu    
-    # untrained_prediction = untrained_prediction.detach().cpu()
-    # x_noisy_example = x_noisy_example.detach().cpu()
+    untrained_prediction = untrained_prediction.detach().cpu()
+    x_noisy_example = x_noisy_example.detach().cpu()
 
     # # convert back to 32x32 images
-    # untrained_prediction = reshape_images(untrained_prediction)
+    untrained_prediction = reshape_images(untrained_prediction)
 
-    # # plot the prediction next to the original image
+    # # # plot the prediction next to the original image
     # plot_examples(x_clean_example, x_noisy_example, untrained_prediction)     
 
-    # train the model 
+    # # train the model 
     model, train_losses, valid_losses = train_model(model, 
                                                     train_loader, valid_loader, 
                                                     optimizer, criterion, num_epochs, 
                                                     device, write_to_file=True)
      
-    ##### do a prediction on trained model #####    
+    # ##### do a prediction on trained model #####    
     # load the trained model 
-    # model = load_model(model, "model_params_noact_50epoch.pth")
+    # model = load_model(model, "model_params.pth")
     trained_prediction = model(x_noisy_example.to(device))
     trained_prediction = trained_prediction.detach().cpu()
     trained_prediction = reshape_images(trained_prediction)
@@ -220,7 +220,9 @@ def main():
     # # question 1f plot
     # plot_question_1f(x_clean_example, x_noisy_example, untrained_prediction, trained_prediction)
 
-    plot_examples(x_clean_example, x_noisy_example.detach().cpu(), reshape_images(trained_prediction.detach().cpu()))  
+    plot_examples(untrained_prediction, trained_prediction, x_clean_example)
+
+    # plot_examples(x_clean_example, x_noisy_example.detach().cpu(), reshape_images(trained_prediction.detach().cpu()))  
 
     # plot the loss
     plot_loss(train_losses, valid_losses)

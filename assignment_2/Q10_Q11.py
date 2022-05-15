@@ -13,7 +13,7 @@ def relu(x):
     """
     return np.maximum(x, 0)
 
-def plot_q10(X, y, h, save_fig=False):
+def plot_Q10(X, y, h, save_fig=False):
 
     # plot x and h in separate plots
     plt.figure(figsize=(12, 5))
@@ -74,11 +74,12 @@ def plot_Q11(X, y, h, save_fig=False):
     plt.xlabel('x1')
     plt.ylabel('x2')
 
-    # Define x and y values x_2 = -x_1 + 0.5
+    # Define x and y values x2 = -x1 + 0.5
     x1 = [-4, 6]
     y1 = [4.5, -5.5]
     plt.plot(x1, y1, linewidth=2, color='green', linestyle='--', label='x2 = -x1 + 0.5')
 
+    # Define x and y values x2 = -x1 + 1.5
     x2 = [4, -4]
     y2 = [-2.5, 5.5]
     plt.plot(x2, y2, linewidth=2, color='orange', linestyle='--', label='x2 = -x1 + 1.5')
@@ -98,36 +99,19 @@ def main():
 
     # define parameters
     W_1 = np.ones((2, 2))
-    b_1 = np.array([[0, -1]]).T
-    w_2 = np.array([[1, -2]]).T
-    b_2 = np.array([[0]])
-
-    # print all parameters
-    print("W_1: \n", W_1)
-    print("b_1: \n", b_1)
-    print("w_2: \n", w_2)
-    print("b_2: \n", b_2)
-    print("-------------------------")
-    
-    h = np.zeros((4, 2), dtype=int)    
+    b_1 = np.array([[0, -1]]).T    
+    h = np.zeros((4, 2))    
 
     # for every input x, calculate the output y
     for i, x in enumerate(X):
-        print("x: \n", x)
-        # calculate the output of the first layer
         h[[i]] = relu(np.dot(W_1, np.array([x]).T) + b_1).T
-        print("h: \n", h[i])
 
     # plot Q10
-    # plot_q10(X, y, h)
+    # plot_Q10(X, y, h)
 
     # plot Q11
     plot_Q11(X, y, h, save_fig=True)
    
-
-
-
-
 
 if __name__ == '__main__':
     main()

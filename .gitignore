@@ -133,4 +133,7 @@ dmypy.json
 data
 .tar
 
+# local test code
+local_test.py
+
 

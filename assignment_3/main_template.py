@@ -24,14 +24,6 @@ learning_rate = 3e-4
 # get dataloader
 train_loader, test_loader = MNIST_dataloader.create_dataloaders(data_loc, batch_size)
 
-""" 
-for idx,x_clean_train in enumerate (train_loader.dataset.Clean_Images[10:20]):
-
-    clean_images = x_clean_train.view(x_clean_train.shape[0], -1)
-    print ("Clean images shape:", clean_images.shape) """
-
-
-
 # create the autoencoder
 AE = autoencoder_template.AE()
 
@@ -40,6 +32,12 @@ criterion = nn.MSELoss()
 optimizer = optim.Adam(AE.parameters(), learning_rate, weight_decay=1e-5)
 train_losses = []
 
+# define the device
+device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+print("Using device:", device)
+
+# move model to device
+AE.to(device)
 
 # %% training loop
 # go over all epochs
@@ -53,10 +51,7 @@ for epoch in range(no_epochs):
         # fill in how to train your network using only the clean images
 
         # forward pass
-        recon,latent = AE(x_clean)
-        print ("Latent shape:", latent.shape)
-        print ("Recon shape:", recon.shape)
-        print ("Clean images shape:", x_clean.shape)
+        recon, latent = AE(x_clean)
         loss = criterion(recon, x_clean)
         # backward pass, update weights
         optimizer.zero_grad()
@@ -66,10 +61,27 @@ for epoch in range(no_epochs):
         # add loss to the total loss
         train_loss += loss.item()
 
+# show the examples in a plot
+plt.figure(figsize=(12,3))
+for i in range(10):
+    plt.subplot(2,10,i+1)
+    plt.imshow(x_clean[i,0,:,:],cmap='gray')
+    plt.xticks([])
+    plt.yticks([])
+    
+    plt.subplot(2,10,i+11)
+    plt.imshow(recon[i,0,:,:],cmap='gray')
+    plt.xticks([])
+    plt.yticks([])
+
+plt.tight_layout()
+plt.savefig("autoencoder_output.png",dpi=300,bbox_inches='tight')
+plt.show() 
 
 # %% HINT
 #hint: if you do not care about going over the data in mini-batches but rather want the entire dataset use:
-""" x_clean_train = train_loader.dataset.Clean_Images
+""" 
+x_clean_train = train_loader.dataset.Clean_Images
 x_noisy_train = train_loader.dataset.Noisy_Images
 labels_train  = train_loader.dataset.Labels
 
@@ -78,6 +90,7 @@ x_noisy_test  = test_loader.dataset.Noisy_Images
 labels_test   = test_loader.dataset.Labels """
 
 # use these 10 examples as representations for all digits
-""" x_clean_example = x_clean_test[0:10,:,:,:]
+""" 
+x_clean_example = x_clean_test[0:10,:,:,:]
 x_noisy_example = x_noisy_test[0:10,:,:,:]
 labels_example = labels_test[0:10] """

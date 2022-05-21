@@ -22,7 +22,7 @@ class Noisy_MNIST(Dataset):
             Train = False
             
         # get the original MNIST dataset   
-        Clean_MNIST = datasets.MNIST(self.data_loc, train=Train, download=True)
+        Clean_MNIST = datasets.MNIST(self.data_loc, train=Train, download=False)
         
         # reshuffle the test set to have digits 0-9 at the start
         if self.split == 'train':
@@ -69,7 +69,7 @@ def create_dataloaders(data_loc, batch_size):
 # %% test if the dataloaders work
 if __name__ == "__main__":
     # define parameters
-    data_loc = 'D://5LSL0-Datasets' #change the datalocation to something that works for you
+    data_loc = 'data' #change the datalocation to something that works for you
     batch_size = 64
     
     # get dataloader
@@ -80,6 +80,10 @@ if __name__ == "__main__":
     _, (x_clean_example, x_noisy_example, labels_example) = next(examples)
     # use these example images througout the assignment as the first 10 correspond to the digits 0-9
     
+    #print (x_clean_example.size()) 
+    #torch.Size([64, 1, 32, 32])
+  
+     
     # show the examples in a plot
     plt.figure(figsize=(12,3))
     for i in range(10):
@@ -95,4 +99,4 @@ if __name__ == "__main__":
     
     plt.tight_layout()
     plt.savefig("data_examples.png",dpi=300,bbox_inches='tight')
-    plt.show()
+    plt.show() 

@@ -9,19 +9,19 @@ class Encoder(nn.Module):
         # create layers here
         self.encoder = nn.Sequential(
             # input is N, 1, 32, 32
-            nn.Conv2d(in_channels = 1, out_channels = 16, kernel_size = (3, 3), stride = 1, padding = 'same'), # N, 16, 32, 32
+            nn.Conv2d(in_channels = 1, out_channels = 16, kernel_size = (3, 3), stride = 1, padding = 1), # N, 16, 32, 32
             nn.ReLU(True),
             nn.MaxPool2d((2,2), stride=2), # N, 16, 16, 16
-            nn.Conv2d(in_channels =16, out_channels = 16, kernel_size = (3, 3), stride = 1, padding = 'same'), # N, 16, 16, 16
+            nn.Conv2d(in_channels =16, out_channels = 16, kernel_size = (3, 3), stride = 1, padding = 1), # N, 16, 16, 16
             nn.ReLU(True),
             nn.MaxPool2d((2,2), stride=2), # N, 16, 8, 8
-            nn.Conv2d(in_channels =16, out_channels = 16,kernel_size = (3, 3), stride = 1, padding = 'same'), # N, 16, 8, 8
+            nn.Conv2d(in_channels =16, out_channels = 16,kernel_size = (3, 3), stride = 1, padding = 1), # N, 16, 8, 8
             nn.ReLU(True),
             nn.MaxPool2d((2,2), stride=2), # N, 16, 4, 4
-            nn.Conv2d(in_channels =16, out_channels = 16, kernel_size = (3, 3), stride = 1, padding = 'same'), # N, 16, 4, 4
+            nn.Conv2d(in_channels =16, out_channels = 16, kernel_size = (3, 3), stride = 1, padding = 1), # N, 16, 4, 4
             nn.ReLU(True),
             nn.MaxPool2d((2,2), stride=2), # N, 16, 2, 2
-            nn.Conv2d(in_channels =16, out_channels = 1, kernel_size = (2, 2), stride = 1, padding = 'same'), # N, 1, 2, 2
+            nn.Conv2d(in_channels =16, out_channels = 1, kernel_size = (1, 1), stride = 1, padding = 0), # N, 1, 2, 2
             nn.ReLU(True),
             nn.MaxPool2d((1,2), stride=1), # N, 1, 2, 1
 
@@ -72,19 +72,19 @@ class AE(nn.Module):
 
 def test():
     # test encoder part 
-    #x = torch.randn((1, 1, 32, 32))   
-    #model = Encoder()
+    x = torch.randn((1, 1, 32, 32))   
+    model = Encoder()
     
     # test decoder part
     #x = torch.randn((1, 1, 2, 1))
     #model = Decoder()
 
     # test AE
-    x = torch.randn((64, 1, 32, 32))   
-    model = AE()
+    #x = torch.randn((64, 1, 32, 32))   
+    #model = AE()
 
-    preds , latent = model(x)
-    print('latent:',latent.shape)
+    preds = model(x)
+    #print('latent:',latent.shape)
     print ('preds :',preds.shape)
     print ('x :',x.shape)
 

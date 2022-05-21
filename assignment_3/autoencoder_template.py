@@ -46,7 +46,7 @@ class Decoder(nn.Module):
             nn.ConvTranspose2d(in_channels = 16, out_channels = 16, kernel_size = (3, 3), stride = 1, padding = 1), # N, 16, 8, 8
             nn.ReLU(True),
             nn.UpsamplingNearest2d(scale_factor = (2,2)), # N, 16, 16, 16
-            nn.ConvTranspose2d(in_channels = 16, out_channels = 16, kernel_size = (3, 3), stride = 1, padding = 1), # N, 16, 16, 16
+            nn.ConvTranspose2d(in_channels = 16, out_channels = 1, kernel_size = (3, 3), stride = 1, padding = 1), # N, 16, 16, 16
             nn.ReLU(True),
             nn.UpsamplingNearest2d(scale_factor = (2,2)), # N, 16, 32, 32
             #nn.ConvTranspose2d(in_channels = 16, out_channels = 1, kernel_size = 3, stride = 2, padding = 'same'), # N, 1, 160, 240
@@ -80,7 +80,7 @@ def test():
     #model = Decoder()
 
     # test AE
-    x = torch.randn((16, 1, 32, 32))   
+    x = torch.randn((64, 1, 32, 32))   
     model = AE()
 
     preds , latent = model(x)

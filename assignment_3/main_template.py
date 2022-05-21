@@ -11,6 +11,19 @@ import matplotlib.pyplot as plt
 import MNIST_dataloader
 import autoencoder_template
 
+
+def load_model(model, filename):
+    """ Load the trained model.
+    Args:
+        model (Model class): Untrained model to load.
+        filename (str): Name of the file to load the model from.
+    Returns:
+        Model: Model with parameters loaded from file.
+    """
+    model.load_state_dict(torch.load(filename))
+    return model
+
+
 # %% set torches random seed
 torch.random.manual_seed(0)
 
@@ -26,7 +39,8 @@ train_loader, test_loader = MNIST_dataloader.create_dataloaders(data_loc, batch_
 
 # create the autoencoder
 AE = autoencoder_template.AE()
-
+# load the trained model 
+#AE = load_model(AE, "AE_model_params.pth")
 # create the optimizer
 criterion = nn.MSELoss()
 optimizer = optim.Adam(AE.parameters(), learning_rate, weight_decay=1e-5)
@@ -60,7 +74,14 @@ for epoch in range(no_epochs):
 
         # add loss to the total loss
         train_loss += loss.item()
+        
+        print('BATCH [{}], loss:{:.6f}'.format(batch_idx+1, loss.item()))
 
+# write the model parameters to a file
+torch.save(AE.state_dict(), "AE_model_params.pth")
+
+# # move back to cpu    
+recon = recon.detach().cpu()
 # show the examples in a plot
 plt.figure(figsize=(12,3))
 for i in range(10):
@@ -75,7 +96,7 @@ for i in range(10):
     plt.yticks([])
 
 plt.tight_layout()
-plt.savefig("autoencoder_output.png",dpi=300,bbox_inches='tight')
+#plt.savefig("exercise_1.png",dpi=300,bbox_inches='tight')
 plt.show() 
 
 # %% HINT

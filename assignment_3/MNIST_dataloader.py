@@ -3,6 +3,7 @@
 import torch
 from torchvision import transforms,datasets
 from torch.utils.data import Dataset,DataLoader
+from torch.utils.data import random_split
 
 # pyplot
 import matplotlib.pyplot as plt
@@ -29,7 +30,7 @@ class Noisy_MNIST(Dataset):
             data = Clean_MNIST.data.unsqueeze(1)
         else:
             data = Clean_MNIST.data.unsqueeze(1)
-            idx = torch.load('assignment_3/test_idx.tar')
+            idx = torch.load('test_idx.tar')
             data[:,:] = data[idx,:]
             
         
@@ -61,10 +62,14 @@ def create_dataloaders(data_loc, batch_size):
     Noisy_MNIST_train = Noisy_MNIST("train", data_loc)
     Noisy_MNIST_test  = Noisy_MNIST("test" , data_loc)
     
-    Noisy_MNIST_train_loader =  DataLoader(Noisy_MNIST_train, batch_size=batch_size, shuffle=True,  drop_last=False)
-    Noisy_MNIST_test_loader  =  DataLoader(Noisy_MNIST_test , batch_size=batch_size, shuffle=False, drop_last=False)
+    # create validation set
+    train_set, valid_set = random_split(Noisy_MNIST_train, [50000, 10000])
     
-    return Noisy_MNIST_train_loader, Noisy_MNIST_test_loader
+    Noisy_MNIST_train_loader =  DataLoader(train_set, batch_size=batch_size, shuffle=True,  drop_last=False)
+    Noisy_MNIST_valid_loader =  DataLoader(valid_set, batch_size=batch_size, shuffle=False, drop_last=False)
+    Noisy_MNIST_test_loader  =  DataLoader(Noisy_MNIST_test, batch_size=batch_size, shuffle=False, drop_last=False)
+
+    return Noisy_MNIST_train_loader, Noisy_MNIST_valid_loader, Noisy_MNIST_test_loader
 
 # %% test if the dataloaders work
 if __name__ == "__main__":

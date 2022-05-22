@@ -82,15 +82,21 @@ torch.save(AE.state_dict(), "AE_model_params.pth")
 
 # # move back to cpu    
 recon = recon.detach().cpu()
+latent = latent.detach().cpu()
 # show the examples in a plot
 plt.figure(figsize=(12,3))
 for i in range(10):
-    plt.subplot(2,10,i+1)
+    plt.subplot(3,10,i+1)
     plt.imshow(x_clean[i,0,:,:],cmap='gray')
     plt.xticks([])
     plt.yticks([])
     
-    plt.subplot(2,10,i+11)
+    plt.subplot(3,10,i+11)
+    plt.imshow(latent[i,0,:,:],cmap='gray')
+    plt.xticks([])
+    plt.yticks([])
+    
+    plt.subplot(3,10,i+21)
     plt.imshow(recon[i,0,:,:],cmap='gray')
     plt.xticks([])
     plt.yticks([])

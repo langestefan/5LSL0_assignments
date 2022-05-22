@@ -24,6 +24,8 @@ class Encoder(nn.Module):
             nn.Conv2d(in_channels =16, out_channels = 1, kernel_size = (2, 2), stride = 1, padding = 0), # N, 1, 2, 2
             nn.ReLU(True),
             nn.MaxPool2d((1,2)), # N, 1, 2, 1
+            #nn.Conv2d(in_channels =16, out_channels = 1, kernel_size = (2, 2), stride = 1, padding = 0), # N, 1, 2, 2
+            #nn.ReLU(True)
 
         )
     def forward(self, x):
@@ -37,20 +39,23 @@ class Decoder(nn.Module):
         super(Decoder, self).__init__()
         #input is N, 1, 2, 1
         self.decoder = nn.Sequential(
-            nn.ConvTranspose2d(in_channels = 1, out_channels = 16, kernel_size = (1, 2), stride = 1, padding = 0), # N, 16, 2, 2
+            nn.ConvTranspose2d(in_channels = 1, out_channels = 16, kernel_size = (1, 1), stride = 1, padding = 0), # N, 16, 2, 1
             nn.ReLU(True),
-            nn.UpsamplingNearest2d(scale_factor = 2), # N, 16, 4, 4
+            nn.Upsample(scale_factor=(1,2), mode='bilinear'), # N, 16, 2, 2
+            nn.ConvTranspose2d(in_channels = 16, out_channels = 16, kernel_size = (3, 3), stride = 1, padding = 1), # N, 16, 2, 2
+            nn.ReLU(True),
+            nn.Upsample(scale_factor=(2,2), mode='bilinear'), # N, 16, 4, 4
             nn.ConvTranspose2d(in_channels = 16, out_channels = 16, kernel_size = (3, 3), stride = 1, padding = 1), # N, 16, 4, 4
             nn.ReLU(True),
-            nn.UpsamplingNearest2d(scale_factor = 2), # N, 16, 8, 8
+            nn.Upsample(scale_factor=(2,2), mode='bilinear'), # N, 16, 8, 8
             nn.ConvTranspose2d(in_channels = 16, out_channels = 16, kernel_size = (3, 3), stride = 1, padding = 1), # N, 16, 8, 8
             nn.ReLU(True),
-            nn.UpsamplingNearest2d(scale_factor = 2), # N, 16, 16, 16
-            nn.ConvTranspose2d(in_channels = 16, out_channels = 1, kernel_size = (3, 3), stride = 1, padding = 1), # N, 16, 16, 16
+            nn.Upsample(scale_factor=(2,2), mode='bilinear'), # N, 16, 16, 16
+            nn.ConvTranspose2d(in_channels = 16, out_channels = 16, kernel_size = (3, 3), stride = 1, padding = 1), # N, 1, 16, 16
             nn.ReLU(True),
-            nn.UpsamplingNearest2d(scale_factor = 2), # N, 16, 32, 32
-            #nn.ConvTranspose2d(in_channels = 16, out_channels = 1, kernel_size = 3, stride = 2, padding = 'same'), # N, 1, 160, 240
-            #nn.Tanh()
+            nn.Upsample(scale_factor=(2,2), mode='bilinear'), # N, 16, 32, 32
+            nn.Conv2d(in_channels = 16, out_channels = 1, kernel_size = (3, 3), stride = 1, padding = 1), # N, 1, 32, 32
+            nn.ReLU(True)
         )
         
     def forward(self, h):

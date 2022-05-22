@@ -4,7 +4,8 @@ from turtle import shape
 import torch.optim as optim
 import torch.nn as nn
 import torch
-from tqdm import tqdm
+# from tqdm import tqdm
+from tqdm.auto import tqdm as tqdm
 import matplotlib.pyplot as plt
 
 # local imports
@@ -31,7 +32,7 @@ torch.random.manual_seed(0)
 # define parameters
 data_loc = 'data' #change the data location to something that works for you
 batch_size = 64
-no_epochs = 1
+n_epochs = 50
 learning_rate = 3e-4
 
 # get dataloader
@@ -47,7 +48,7 @@ optimizer = optim.Adam(AE.parameters(), learning_rate, weight_decay=1e-5)
 train_losses = []
 
 # define the device
-device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu") #"cpu" # 
 print("Using device:", device)
 
 # move model to device
@@ -55,18 +56,24 @@ AE.to(device)
 
 # %% training loop
 # go over all epochs
-for epoch in range(no_epochs):
+for epoch in range(n_epochs):
     print(f"\nTraining Epoch {epoch}:")
     
     train_loss = 0
 
     # go over all minibatches
-    for batch_idx,(x_clean, x_noisy, label) in enumerate(tqdm(train_loader)):
+    for batch_idx,(x_clean, x_noisy, label) in enumerate(tqdm(train_loader, position=0, leave=False, ascii=False)):
         # fill in how to train your network using only the clean images
+
+        # move to device
+        x_clean = x_clean.to(device)
+        x_noisy = x_noisy.to(device)
+        label = label.to(device)
 
         # forward pass
         recon, latent = AE(x_clean)
         loss = criterion(recon, x_clean)
+
         # backward pass, update weights
         optimizer.zero_grad()
         loss.backward()
@@ -75,7 +82,7 @@ for epoch in range(no_epochs):
         # add loss to the total loss
         train_loss += loss.item()
         
-        print('BATCH [{}], loss:{:.6f}'.format(batch_idx+1, loss.item()))
+        # print('BATCH [{}], loss:{:.6f}'.format(batch_idx+1, loss.item()))
 
 # write the model parameters to a file
 torch.save(AE.state_dict(), "AE_model_params.pth")
@@ -83,6 +90,9 @@ torch.save(AE.state_dict(), "AE_model_params.pth")
 # # move back to cpu    
 recon = recon.detach().cpu()
 latent = latent.detach().cpu()
+x_clean = x_clean.detach().cpu()
+x_noisy = x_noisy.detach().cpu()
+
 # show the examples in a plot
 plt.figure(figsize=(12,3))
 for i in range(10):

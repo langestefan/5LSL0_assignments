@@ -29,7 +29,7 @@ class Noisy_MNIST(Dataset):
             data = Clean_MNIST.data.unsqueeze(1)
         else:
             data = Clean_MNIST.data.unsqueeze(1)
-            idx = torch.load('test_idx.tar')
+            idx = torch.load('assignment_3/test_idx.tar')
             data[:,:] = data[idx,:]
             
         

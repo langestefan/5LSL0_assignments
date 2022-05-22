@@ -24,6 +24,25 @@ def load_model(model, filename):
     model.load_state_dict(torch.load(filename))
     return model
 
+def plot_images_exercise_1(x_data, recon):
+
+    # show the examples in a plot
+    plt.figure(figsize=(12,3))
+    for i in range(10):
+        plt.subplot(2,10,i+1)
+        plt.imshow(x_data[i,0,:,:],cmap='gray')
+        plt.xticks([])
+        plt.yticks([])
+        
+        plt.subplot(2,10,i+11)
+        plt.imshow(recon[i,0,:,:],cmap='gray')
+        plt.xticks([])
+        plt.yticks([])
+
+    plt.tight_layout()
+    #plt.savefig("exercise_1.png",dpi=300,bbox_inches='tight')
+    plt.show() 
+
 
 # %% set torches random seed
 torch.random.manual_seed(0)
@@ -32,7 +51,7 @@ torch.random.manual_seed(0)
 # define parameters
 data_loc = 'data' #change the data location to something that works for you
 batch_size = 64
-n_epochs = 50
+n_epochs = 1
 learning_rate = 3e-4
 
 # get dataloader
@@ -93,27 +112,14 @@ latent = latent.detach().cpu()
 x_clean = x_clean.detach().cpu()
 x_noisy = x_noisy.detach().cpu()
 
-# show the examples in a plot
-plt.figure(figsize=(12,3))
-for i in range(10):
-    plt.subplot(3,10,i+1)
-    plt.imshow(x_clean[i,0,:,:],cmap='gray')
-    plt.xticks([])
-    plt.yticks([])
-    
-    plt.subplot(3,10,i+11)
-    plt.imshow(latent[i,0,:,:],cmap='gray')
-    plt.xticks([])
-    plt.yticks([])
-    
-    plt.subplot(3,10,i+21)
-    plt.imshow(recon[i,0,:,:],cmap='gray')
-    plt.xticks([])
-    plt.yticks([])
-
-plt.tight_layout()
-#plt.savefig("exercise_1.png",dpi=300,bbox_inches='tight')
-plt.show() 
+batch_size_TEST =1
+# get X_clean_exsample
+train_loader, test_loader = MNIST_dataloader.create_dataloaders(data_loc, batch_size_TEST)
+x_clean_test  = test_loader.dataset.Clean_Images[0:10]
+recon_test, latent_test = AE(x_clean_test)
+recon_test = recon_test.detach().cpu()
+plot_images_exercise_1(x_clean_test, recon_test)
+plot_images_exercise_1(x_clean, recon)
 
 # %% HINT
 #hint: if you do not care about going over the data in mini-batches but rather want the entire dataset use:

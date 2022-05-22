@@ -10,18 +10,23 @@ class Encoder(nn.Module):
         self.encoder = nn.Sequential(
             # input is N, 1, 32, 32
             nn.Conv2d(in_channels = 1, out_channels = 16, kernel_size = (3, 3), stride = 1, padding = 1), # N, 16, 32, 32
+            nn.BatchNorm2d(16),
             nn.ReLU(True),
             nn.MaxPool2d((2,2), padding=1), # N, 16, 16, 16
             nn.Conv2d(in_channels =16, out_channels = 16, kernel_size = (3, 3), stride = 1, padding = 1), # N, 16, 16, 16
+            nn.BatchNorm2d(16),
             nn.ReLU(True),
             nn.MaxPool2d((2,2), padding=1), # N, 16, 8, 8
             nn.Conv2d(in_channels =16, out_channels = 16,kernel_size = (3, 3), stride = 1, padding = 1), # N, 16, 8, 8
+            nn.BatchNorm2d(16),
             nn.ReLU(True),
             nn.MaxPool2d((2,2), padding=1), # N, 16, 4, 4
             nn.Conv2d(in_channels =16, out_channels = 16, kernel_size = (3, 3), stride = 1, padding = 1), # N, 16, 5, 5
+            nn.BatchNorm2d(16),
             nn.ReLU(True),
             nn.MaxPool2d((2,2), padding=1), # N, 16, 3, 3
             nn.Conv2d(in_channels =16, out_channels = 1, kernel_size = (2, 2), stride = 1, padding = 0), # N, 1, 2, 2
+            nn.BatchNorm2d(1),
             nn.ReLU(True),
             nn.MaxPool2d((1,2)), # N, 1, 2, 1
             #nn.Conv2d(in_channels =16, out_channels = 1, kernel_size = (2, 2), stride = 1, padding = 0), # N, 1, 2, 2
@@ -40,21 +45,27 @@ class Decoder(nn.Module):
         #input is N, 1, 2, 1
         self.decoder = nn.Sequential(
             nn.ConvTranspose2d(in_channels = 1, out_channels = 16, kernel_size = (1, 1), stride = 1, padding = 0), # N, 16, 2, 1
+            nn.BatchNorm2d(16),
             nn.ReLU(True),
-            nn.Upsample(scale_factor=(1,2), mode='bilinear'), # N, 16, 2, 2
+            nn.Upsample(scale_factor=(1,2), mode='nearest'), # N, 16, 2, 2
             nn.ConvTranspose2d(in_channels = 16, out_channels = 16, kernel_size = (3, 3), stride = 1, padding = 1), # N, 16, 2, 2
+            nn.BatchNorm2d(16),
             nn.ReLU(True),
-            nn.Upsample(scale_factor=(2,2), mode='bilinear'), # N, 16, 4, 4
+            nn.Upsample(scale_factor=(2,2), mode='nearest'), # N, 16, 4, 4
             nn.ConvTranspose2d(in_channels = 16, out_channels = 16, kernel_size = (3, 3), stride = 1, padding = 1), # N, 16, 4, 4
+            nn.BatchNorm2d(16),
             nn.ReLU(True),
-            nn.Upsample(scale_factor=(2,2), mode='bilinear'), # N, 16, 8, 8
+            nn.Upsample(scale_factor=(2,2), mode='nearest'), # N, 16, 8, 8
             nn.ConvTranspose2d(in_channels = 16, out_channels = 16, kernel_size = (3, 3), stride = 1, padding = 1), # N, 16, 8, 8
+            nn.BatchNorm2d(16),
             nn.ReLU(True),
-            nn.Upsample(scale_factor=(2,2), mode='bilinear'), # N, 16, 16, 16
+            nn.Upsample(scale_factor=(2,2), mode='nearest'), # N, 16, 16, 16
             nn.ConvTranspose2d(in_channels = 16, out_channels = 16, kernel_size = (3, 3), stride = 1, padding = 1), # N, 1, 16, 16
+            nn.BatchNorm2d(16),
             nn.ReLU(True),
-            nn.Upsample(scale_factor=(2,2), mode='bilinear'), # N, 16, 32, 32
+            nn.Upsample(scale_factor=(2,2), mode='nearest'), # N, 16, 32, 32
             nn.Conv2d(in_channels = 16, out_channels = 1, kernel_size = (3, 3), stride = 1, padding = 1), # N, 1, 32, 32
+            nn.BatchNorm2d(1),
             # nn.ReLU(True)
         )
         

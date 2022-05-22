@@ -1,9 +1,10 @@
-# %% imports
 # libraries
 from turtle import shape
 import torch.optim as optim
 import torch.nn as nn
 import torch
+import numpy as np
+
 # from tqdm import tqdm
 from tqdm.auto import tqdm as tqdm
 import matplotlib.pyplot as plt
@@ -11,6 +12,8 @@ import matplotlib.pyplot as plt
 # local imports
 import MNIST_dataloader
 import autoencoder_template
+import train
+
 
 
 def load_model(model, filename):
@@ -43,11 +46,9 @@ def plot_images_exercise_1(x_data, recon):
     #plt.savefig("exercise_1.png",dpi=300,bbox_inches='tight')
     plt.show() 
 
-
-# %% set torches random seed
+# set torches random seed
 torch.random.manual_seed(0)
 
-# %% preperations
 # define parameters
 data_loc = 'data' #change the data location to something that works for you
 batch_size = 64
@@ -75,6 +76,10 @@ AE.to(device)
 
 # %% training loop
 # go over all epochs
+
+# track losses
+train_losses = []
+
 for epoch in range(n_epochs):
     print(f"\nTraining Epoch {epoch}:")
     
@@ -100,8 +105,11 @@ for epoch in range(n_epochs):
 
         # add loss to the total loss
         train_loss += loss.item()
-        
-        # print('BATCH [{}], loss:{:.6f}'.format(batch_idx+1, loss.item()))
+    
+    # print the average loss for this epoch
+    train_loss /= len(train_loader)
+    train_losses.append(train_loss)
+    print(f"Average loss for epoch {epoch} is {train_loss}")
 
 # write the model parameters to a file
 torch.save(AE.state_dict(), "AE_model_params.pth")
@@ -112,14 +120,20 @@ latent = latent.detach().cpu()
 x_clean = x_clean.detach().cpu()
 x_noisy = x_noisy.detach().cpu()
 
-batch_size_TEST =1
+batch_size_TEST = 1
+
 # get X_clean_exsample
 train_loader, test_loader = MNIST_dataloader.create_dataloaders(data_loc, batch_size_TEST)
 x_clean_test  = test_loader.dataset.Clean_Images[0:10]
-recon_test, latent_test = AE(x_clean_test)
+
+recon_test, latent_test = AE(x_clean_test.to(device))
 recon_test = recon_test.detach().cpu()
+
 plot_images_exercise_1(x_clean_test, recon_test)
 plot_images_exercise_1(x_clean, recon)
+
+
+train.plot_loss(train_losses=train_losses, valid_losses=train_losses)
 
 # %% HINT
 #hint: if you do not care about going over the data in mini-batches but rather want the entire dataset use:

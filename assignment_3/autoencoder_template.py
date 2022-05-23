@@ -63,8 +63,8 @@ class Decoder(nn.Module):
             nn.ReLU(True),
             nn.Upsample(scale_factor=(2,2), mode='nearest'), # N, 16, 32, 32
             nn.Conv2d(in_channels=16, out_channels=1, kernel_size=(3, 3), stride=1, padding=1), # N, 1, 32, 32
-            nn.BatchNorm2d(1),
-            # nn.ReLU(True)
+            #nn.BatchNorm2d(1),
+            #nn.ReLU(True)
         )
         
     def forward(self, h):

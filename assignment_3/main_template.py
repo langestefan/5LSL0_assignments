@@ -43,7 +43,7 @@ def plot_images_exercise_1(x_data, recon):
         plt.yticks([])
 
     plt.tight_layout()
-    #plt.savefig("exercise_1.png",dpi=300,bbox_inches='tight')
+    plt.savefig("exercise_1.png",dpi=300,bbox_inches='tight')
     plt.show() 
 
 # set torches random seed
@@ -52,7 +52,7 @@ torch.random.manual_seed(0)
 # define parameters
 data_loc = 'data' #change the data location to something that works for you
 batch_size = 64
-n_epochs = 3
+n_epochs = 30
 learning_rate = 3e-4
 
 # get dataloader
@@ -60,8 +60,10 @@ train_loader,valid_loader, test_loader = MNIST_dataloader.create_dataloaders(dat
 
 # create the autoencoder
 AE = autoencoder_template.AE()
+
 # load the trained model 
-AE = load_model(AE, "AE_model_params.pth")
+#AE = load_model(AE, "AE_model_params.pth")
+
 # create the optimizer
 criterion = nn.MSELoss()
 optimizer = optim.Adam(AE.parameters(), learning_rate, weight_decay=1e-5)
@@ -75,12 +77,13 @@ print("Using device:", device)
 AE.to(device)
 
 # %% training loop
-# go over all epochs
+
 
 # track losses
 train_losses = []
 valid_losses = []
 
+# go over all epochs
 for epoch in range(n_epochs):
     print(f"\nTraining Epoch {epoch}:")
     
@@ -136,7 +139,7 @@ recon_test, latent_test = AE(x_clean_test.to(device))
 recon_test = recon_test.detach().cpu()
 
 plot_images_exercise_1(x_clean_test, recon_test)
-plot_images_exercise_1(x_clean, recon)
+#plot_images_exercise_1(x_clean, recon)
 
 
 train.plot_loss(train_losses=train_losses, valid_losses=valid_losses)

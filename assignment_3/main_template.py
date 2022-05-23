@@ -52,16 +52,16 @@ torch.random.manual_seed(0)
 # define parameters
 data_loc = 'data' #change the data location to something that works for you
 batch_size = 64
-n_epochs = 1
+n_epochs = 3
 learning_rate = 3e-4
 
 # get dataloader
-train_loader, test_loader = MNIST_dataloader.create_dataloaders(data_loc, batch_size)
+train_loader,valid_loader, test_loader = MNIST_dataloader.create_dataloaders(data_loc, batch_size)
 
 # create the autoencoder
 AE = autoencoder_template.AE()
 # load the trained model 
-#AE = load_model(AE, "AE_model_params.pth")
+AE = load_model(AE, "AE_model_params.pth")
 # create the optimizer
 criterion = nn.MSELoss()
 optimizer = optim.Adam(AE.parameters(), learning_rate, weight_decay=1e-5)
@@ -79,6 +79,7 @@ AE.to(device)
 
 # track losses
 train_losses = []
+valid_losses = []
 
 for epoch in range(n_epochs):
     print(f"\nTraining Epoch {epoch}:")
@@ -97,6 +98,7 @@ for epoch in range(n_epochs):
         # forward pass
         recon, latent = AE(x_clean)
         loss = criterion(recon, x_clean)
+       
 
         # backward pass, update weights
         optimizer.zero_grad()
@@ -105,11 +107,16 @@ for epoch in range(n_epochs):
 
         # add loss to the total loss
         train_loss += loss.item()
-    
+
+    # calculate validation loss
+    valid_loss = train.calculate_loss(AE, valid_loader, criterion, device)
+
     # print the average loss for this epoch
     train_loss /= len(train_loader)
+    
     train_losses.append(train_loss)
-    print(f"Average loss for epoch {epoch} is {train_loss}")
+    valid_losses.append(valid_loss)
+    print(f"Average train loss for epoch {epoch} is {train_loss}, validation loss is {valid_loss}")
 
 # write the model parameters to a file
 torch.save(AE.state_dict(), "AE_model_params.pth")
@@ -123,7 +130,6 @@ x_noisy = x_noisy.detach().cpu()
 batch_size_TEST = 1
 
 # get X_clean_exsample
-train_loader, test_loader = MNIST_dataloader.create_dataloaders(data_loc, batch_size_TEST)
 x_clean_test  = test_loader.dataset.Clean_Images[0:10]
 
 recon_test, latent_test = AE(x_clean_test.to(device))
@@ -133,7 +139,7 @@ plot_images_exercise_1(x_clean_test, recon_test)
 plot_images_exercise_1(x_clean, recon)
 
 
-train.plot_loss(train_losses=train_losses, valid_losses=train_losses)
+train.plot_loss(train_losses=train_losses, valid_losses=valid_losses)
 
 # %% HINT
 #hint: if you do not care about going over the data in mini-batches but rather want the entire dataset use:

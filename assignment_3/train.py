@@ -1,6 +1,7 @@
 import torch
 import matplotlib.pyplot as plt
 import numpy as np
+from tqdm.auto import tqdm as tqdm
 
 def reshape_images(images):
     """
@@ -131,18 +132,19 @@ def calculate_loss(model, data_loader, criterion, device):
     loss = 0
 
     # loop over batches
-    for batch_idx, (clean_images, noisy_images, labels) in enumerate(data_loader):
+    for batch_idx, (clean_images, noisy_images, labels) in enumerate(tqdm(data_loader, position=0, leave=False, ascii=False)):
 
             # flatten the images
-            clean_images = clean_images.view(clean_images.shape[0], -1)
-            noisy_images = noisy_images.view(noisy_images.shape[0], -1)   
+            #clean_images = clean_images.view(clean_images.shape[0], -1)
+            #noisy_images = noisy_images.view(noisy_images.shape[0], -1)   
 
             # move to GPU if available
-            noisy_images, clean_images = noisy_images.to(device), clean_images.to(device)
+            #noisy_images = noisy_images.to(device),
+            clean_images = clean_images.to(device)
 
             # forward pass
-            outputs = model(noisy_images)
-
+            outputs, latent = model(clean_images)
+           
             # calculate loss
             loss += criterion(outputs, clean_images).item()
 
@@ -196,8 +198,8 @@ def train_model(model, train_loader, valid_loader, optimizer, criterion, epochs,
         for batch_idx, (clean_images, noisy_images, labels) in enumerate(train_loader):
 
             # flatten the images
-            clean_images = clean_images.view(clean_images.shape[0], -1)
-            noisy_images = noisy_images.view(noisy_images.shape[0], -1)                   
+            #clean_images = clean_images.view(clean_images.shape[0], -1)
+            #noisy_images = noisy_images.view(noisy_images.shape[0], -1)                   
 
             # print("Clean images shape:", clean_images.shape)
             # print("Noisy images shape:", noisy_images.shape)

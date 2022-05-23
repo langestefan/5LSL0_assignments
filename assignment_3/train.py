@@ -154,7 +154,7 @@ def calculate_loss(model, data_loader, criterion, device):
             
 
 # train model function
-def train_model(model, train_loader, valid_loader, optimizer, criterion, epochs, device, write_to_file=False):
+def train_model(model, train_loader, valid_loader, optimizer, criterion, n_epochs, device, write_to_file=True):
     """
     Fit the model on the training data set.
     Arguments
@@ -185,65 +185,48 @@ def train_model(model, train_loader, valid_loader, optimizer, criterion, epochs,
     train_losses = []
     valid_losses = []
 
-    # loop over epochs
-    for epoch in range(epochs):
-
-        # set model to train mode
-        model.train()
-
-        # initialize loss
+    # go over all epochs
+    for epoch in range(n_epochs):
+        print(f"\nTraining Epoch {epoch}:")
+        
         train_loss = 0
+        valid_loss = 0
 
-        # loop over batches
-        for batch_idx, (clean_images, noisy_images, labels) in enumerate(train_loader):
+        # go over all minibatches
+        for batch_idx,(x_clean, x_noisy, label) in enumerate(tqdm(train_loader, position=0, leave=False, ascii=False)):
+            # fill in how to train your network using only the clean images
 
-            # flatten the images
-            #clean_images = clean_images.view(clean_images.shape[0], -1)
-            #noisy_images = noisy_images.view(noisy_images.shape[0], -1)                   
-
-            # print("Clean images shape:", clean_images.shape)
-            # print("Noisy images shape:", noisy_images.shape)
-            
-            # move to GPU if available
-            noisy_images, clean_images = noisy_images.to(device), clean_images.to(device)
-
-            # clear the gradients
-            optimizer.zero_grad()
+            # move to device
+            x_clean = x_clean.to(device)
+            x_noisy = x_noisy.to(device)
+            label = label.to(device)
 
             # forward pass
-            outputs = model(noisy_images)               
-            loss = criterion(outputs, clean_images)
+            recon, latent = model(x_clean)
+            loss = criterion(recon, x_clean)
+        
 
-            # backwards pass, update weights
+            # backward pass, update weights
+            optimizer.zero_grad()
             loss.backward()
             optimizer.step()
 
             # add loss to the total loss
             train_loss += loss.item()
 
-            # print training loss
-            if batch_idx % 100 == 0:
-                print('Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}'.format(
-                    epoch, batch_idx * len(clean_images), len(train_loader.dataset),
-                    100. * batch_idx / len(train_loader), loss.item()))
-
-        # calculate training loss
-        train_loss /= len(train_loader)
-
         # calculate validation loss
         valid_loss = calculate_loss(model, valid_loader, criterion, device)
 
-        print("Epoch: {}/{} ".format(epoch+1, epochs),
-                "Training Loss: {:.3f} ".format(train_loss),
-                "Validation Loss: {:.3f}".format(valid_loss))
-
-        # append losses
+        # print the average loss for this epoch
+        train_loss /= len(train_loader)
+        
         train_losses.append(train_loss)
         valid_losses.append(valid_loss)
+        print(f"Average train loss for epoch {epoch} is {train_loss}, validation loss is {valid_loss}")
 
-    # write the model parameters to a file
-    if write_to_file:
-        torch.save(model.state_dict(), "model_params.pth")
+        # write the model parameters to a file
+        if write_to_file:
+            torch.save(model.state_dict(), "AE_model_params.pth")
 
 
     # return the trained model

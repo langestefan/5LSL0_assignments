@@ -202,10 +202,9 @@ def train_model(model, train_loader, valid_loader, optimizer, criterion, n_epoch
             label = label.to(device)
 
             # forward pass
-            recon, latent = model(x_clean)
-            loss = criterion(recon, x_clean)
+            output, latent = model(x_clean)
+            loss = criterion(output, x_clean)
         
-
             # backward pass, update weights
             optimizer.zero_grad()
             loss.backward()
@@ -224,10 +223,12 @@ def train_model(model, train_loader, valid_loader, optimizer, criterion, n_epoch
         valid_losses.append(valid_loss)
         print(f"Average train loss for epoch {epoch} is {train_loss}, validation loss is {valid_loss}")
 
-        # write the model parameters to a file
-        if write_to_file:
-            torch.save(model.state_dict(), "AE_model_params.pth")
+        # write the model parameters to a file every 5 epochs
+        if write_to_file and epoch % 5 == 0:
+            torch.save(model.state_dict(), f"assignment_3/models/AE_model_checkpoint_{epoch+1}_epochs.pth")
 
+    if write_to_file:
+        torch.save(model.state_dict(), f"assignment_3/models/AE_model_best_{epoch+1}_epochs.pth")
 
     # return the trained model
     return model, train_losses, valid_losses

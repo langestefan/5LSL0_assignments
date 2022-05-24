@@ -83,9 +83,9 @@ def test_model(model, test_loader, device):
         x_clean = x_clean.to(device)
 
         # forward pass
-        recon, latent = model(x_clean)        
+        output, latent = model(x_clean)        
         latent = latent.detach().cpu()
-        test_loss = criterion(recon, x_clean)
+        test_loss = criterion(output, x_clean)
 
         # add loss to the total loss
         test_loss += test_loss.item()
@@ -94,10 +94,9 @@ def test_model(model, test_loader, device):
     test_losses = test_loss / len(test_loader)
 
     print(f"Test loss is {test_losses}.")
-    #test_losses = test_losses.detech().cpu()
-    recon = recon.detach().cpu()
+    output = output.detach().cpu()
     
-    return test_losses, recon, latent, test_label
+    return test_losses, output, latent, test_label
 
 
 
@@ -108,7 +107,7 @@ if __name__ == "__main__":
     # define parameters
     data_loc = 'data' #change the data location to something that works for you
     batch_size = 64
-    n_epochs = 10
+    n_epochs = 50
     learning_rate = 3e-4
 
     # get dataloader
@@ -118,7 +117,7 @@ if __name__ == "__main__":
     AE = autoencoder_template.AE()
 
     # load the trained model 
-    AE = load_model(AE, "AE_model_params.pth")
+    # AE = load_model(AE, "AE_model_params.pth")
 
     # create the optimizer
     criterion = nn.MSELoss()
@@ -131,19 +130,20 @@ if __name__ == "__main__":
     # move model to device
     AE.to(device)
 
+    # train the model
     # AE, train_losses, valid_losses = train.train_model(AE, train_loader, 
     #                                                     valid_loader, optimizer, 
     #                                                     criterion, n_epochs, device, 
     #                                                     write_to_file=True)
-
    
     # get first minibatch
     examples = enumerate(test_loader)
     _, (x_clean_example, x_noisy_example, labels_example) = next(examples)
     
     # excercise 1: get model output
-    test_losses, test_recon, test_latent, test_label = test_model(AE, test_loader, device)
-    plot_images_exercise_1(x_clean_example, test_recon)
+    test_losses, test_output, test_latent, test_label = test_model(AE, test_loader, device)
+    print(test_output.shape)
+    plot_images_exercise_1(x_clean_example, test_output)
 
     # excercise 2: latent space
     with torch.no_grad():

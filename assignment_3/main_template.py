@@ -1,4 +1,5 @@
 # libraries
+from matplotlib import markers
 import torch.optim as optim
 import torch.nn as nn
 import torch
@@ -17,21 +18,29 @@ import train
 import os
 os.environ["KMP_DUPLICATE_LIB_OK"]="TRUE"
 
-def scatter_plot(mnist_points):
+def scatter_plot(latent_tensor, label_tensor, n_points=10000):
     """
     Plot function from assignment document
     :param mnist_points: MNIST feature vectors (digits, points, (x0, y0)) = (10, 20, ndim)
     """
-    colors = plt.cm.Paired(np.linspace(0, 1, len(mnist_points)))
+    
+    colors = plt.cm.Paired(np.linspace(0, 1, 10)) # color map, 10 digits
+    markers = ['o', 'v', '^', '<', '>', '8', 's', 'p', '*', 'h'] # marker map, 10 digits
     fig, ax = plt.subplots(figsize=(10, 5))
 
-    for (points, color, digit) in zip(mnist_points, colors, range(10)):
-        ax.scatter([item[0] for item in points],
-                   [item[1] for item in points],
-                   color=color, s=80, label='digit{}'.format(digit))
+    for (latent_xy, digit) in zip(latent_tensor[:n_points], label_tensor[:n_points]):
+        color = colors[digit]
+        ax.scatter([item[0] for item in latent_xy],
+                   [item[1] for item in latent_xy],
+                   color=color, s=20, label=f'digit{digit}', marker=markers[digit])
 
     ax.grid(True)
-    ax.legend()
+
+    # legend
+    handles, labels = plt.gca().get_legend_handles_labels()
+    by_label = dict(zip(labels, handles))
+    plt.legend(by_label.values(), by_label.keys())
+
     ax.set_xlabel('h0')
     ax.set_ylabel('h1')
     plt.show()
@@ -47,7 +56,9 @@ def load_model(model, filename):
     model.load_state_dict(torch.load(filename))
     return model
 
-def plot_images_exercise_1(x_data, recon):
+def plot_images_exercise_1(x_data, model_output):
+
+    print("shape output: ", np.shape(model_output))
 
     # show the examples in a plot
     plt.figure(figsize=(12,3))
@@ -58,7 +69,7 @@ def plot_images_exercise_1(x_data, recon):
         plt.yticks([])
         
         plt.subplot(2,10,i+11)
-        plt.imshow(recon[i,0,:,:],cmap='gray')
+        plt.imshow(model_output[i,0,:,:],cmap='gray')
         plt.xticks([])
         plt.yticks([])
 
@@ -75,28 +86,41 @@ def test_model(model, test_loader, device):
     Returns:
         float: Accuracy of the model on the test data.
     """
-   
+    latent_list = []  # to store the latent representation of the whole dataset
+    output_list = []  # to store the reconstructed output images of the whole dataset
+    label_list = []  # to store the labels of the whole dataset
+
     test_loss = 0
+
+    model.eval()
+
     # go over all minibatches
-    for batch_idx,(x_clean, x_noisy, test_label) in enumerate(tqdm(test_loader, position=0, leave=False, ascii=False)):
-        # move to device
-        x_clean = x_clean.to(device)
+    with torch.no_grad():
+        for batch_idx,(x_clean, x_noisy, test_label) in enumerate(tqdm(test_loader, position=0, leave=False, ascii=False)):
+                    
+            # move to device
+            x_clean = x_clean.to(device)
 
-        # forward pass
-        output, latent = model(x_clean)        
-        latent = latent.detach().cpu()
-        test_loss = criterion(output, x_clean)
+            # forward pass
+            output, latent = model(x_clean)        
+            latent = latent.detach().cpu()
+            test_loss = criterion(output, x_clean)
 
-        # add loss to the total loss
-        test_loss += test_loss.item()
+            # append latent representation and the output of minibatch to the list
+            latent_list.append(latent.detach().cpu())
+            output_list.append(output.detach().cpu())
+            label_list.append(test_label.detach().cpu())
 
-    # print the average loss for this epoch
-    test_losses = test_loss / len(test_loader)
+            # add loss to the total loss
+            test_loss += test_loss.item()
 
-    print(f"Test loss is {test_losses}.")
-    output = output.detach().cpu()
-    
-    return test_losses, output, latent, test_label
+        # print the average loss for this epoch
+        test_losses = test_loss / len(test_loader)
+
+        print(f"Test loss is {test_losses}.")
+        output = output.detach().cpu()
+        
+        return test_losses, output_list, latent_list, label_list
 
 
 
@@ -117,7 +141,7 @@ if __name__ == "__main__":
     AE = autoencoder_template.AE()
 
     # load the trained model 
-    # AE = load_model(AE, "AE_model_params.pth")
+    AE = load_model(AE, "assignment_3/models/AE_model_best_50_epochs.pth")
 
     # create the optimizer
     criterion = nn.MSELoss()
@@ -141,16 +165,19 @@ if __name__ == "__main__":
     _, (x_clean_example, x_noisy_example, labels_example) = next(examples)
     
     # excercise 1: get model output
-    test_losses, test_output, test_latent, test_label = test_model(AE, test_loader, device)
-    print(test_output.shape)
-    plot_images_exercise_1(x_clean_example, test_output)
+    test_losses, output_list, latent_list, label_list = test_model(AE, test_loader, device)
+
+
+    print("label list first 10 elements: ", labels_example)
+
+    # concatenate all outputs into a tensor
+    output_tensor = torch.cat(output_list, dim=0)
+    latent_tensor = torch.cat(latent_list, dim=0)
+    label_tensor = torch.cat(label_list, dim=0)
+    print("Shape: {}".format(np.shape(output_tensor)))
+    print("Shape: {}".format(np.shape(latent_tensor)))
+
+    plot_images_exercise_1(x_clean_example, output_tensor[:10])
 
     # excercise 2: latent space
-    with torch.no_grad():
-        AE.eval()
-
-        # first 10 digits are ordered, for the latent space we only need the encoder
-        test_latent = AE.encoder(x_clean_example[:10].to(device))
-        test_latent = test_latent.detach().cpu()
-
-        scatter_plot(test_latent)
+    scatter_plot(latent_tensor, label_tensor)

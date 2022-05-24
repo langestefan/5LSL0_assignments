@@ -1,8 +1,8 @@
-# %% imports
+# imports
 import torch
 import torch.nn as nn
 
-# %%  Encoder
+# Encoder
 class Encoder(nn.Module):
     def __init__(self):
         super(Encoder, self).__init__()
@@ -36,7 +36,7 @@ class Encoder(nn.Module):
         h = self.encoder(x)
         return h
     
-# %%  Decoder
+# Decoder
 class Decoder(nn.Module):
     def __init__(self):
         super(Decoder, self).__init__()
@@ -72,7 +72,7 @@ class Decoder(nn.Module):
         r = self.decoder(h)
         return r
     
-# %%  Autoencoder
+# Autoencoder
 class AE(nn.Module):
     def __init__(self):
         super(AE, self).__init__()
@@ -99,7 +99,7 @@ def test():
 
     preds, latent = model(x)
     #preds = model(x)
-    print('latent:',latent.shape)
+    print('latent:', latent.shape)
     print ('preds :',preds.shape)
     print ('x :',x.shape)
 

@@ -13,10 +13,13 @@ import MNIST_dataloader
 import autoencoder_template
 import train
 
+# to fix a bug with numpy
+import os
+os.environ["KMP_DUPLICATE_LIB_OK"]="TRUE"
+
 def scatter_plot(mnist_points):
     """
     Plot function from assignment document
-    :param hw_points: Handwritten data feature vectors (digits, points, (x0, y0)) = (10, 1, ndim)
     :param mnist_points: MNIST feature vectors (digits, points, (x0, y0)) = (10, 20, ndim)
     """
     colors = plt.cm.Paired(np.linspace(0, 1, len(mnist_points)))
@@ -26,7 +29,6 @@ def scatter_plot(mnist_points):
         ax.scatter([item[0] for item in points],
                    [item[1] for item in points],
                    color=color, label='digit{}'.format(digit))
-
 
     ax.grid(True)
     ax.legend()
@@ -75,22 +77,16 @@ def test_model(model, test_loader, device):
     test_loss = 0
     # go over all minibatches
     for batch_idx,(x_clean, x_noisy, test_label) in enumerate(tqdm(test_loader, position=0, leave=False, ascii=False)):
-        # fill in how to train your network using only the clean images
-
         # move to device
         x_clean = x_clean.to(device)
 
         # forward pass
-        recon, latent = model(x_clean)
-        
+        recon, latent = model(x_clean)        
         latent = latent.detach().cpu()
-        
-    
-        
         test_loss = criterion(recon, x_clean)
+
         # add loss to the total loss
         test_loss += test_loss.item()
-
 
     # print the average loss for this epoch
     test_losses = test_loss / len(test_loader)
@@ -99,7 +95,6 @@ def test_model(model, test_loader, device):
     #test_losses = test_losses.detech().cpu()
     recon = recon.detach().cpu()
     
-
     return test_losses,recon,latent,test_label
 
 
@@ -128,8 +123,6 @@ if __name__ == "__main__":
     criterion = nn.MSELoss()
     optimizer = optim.Adam(AE.parameters(), learning_rate, weight_decay=1e-5)
 
-
-
     # define the device
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu") #"cpu"
     print("Using device:", device)
@@ -137,47 +130,23 @@ if __name__ == "__main__":
     # move model to device
     AE.to(device)
 
-    # %% training loop
-    #AE, train_losses, valid_losses = train.train_model (AE, train_loader, valid_loader, optimizer, criterion, n_epochs, device, write_to_file=True)
-    test_losses,test_recon, test_latent, test_label= test_model(AE, test_loader, device)
+    # AE, train_losses, valid_losses = train.train_model(AE, train_loader, 
+    #                                                     valid_loader, optimizer, 
+    #                                                     criterion, n_epochs, device, 
+    #                                                     write_to_file=True)
+
+    # test_losses, test_recon, test_latent, test_label = test_model(AE, test_loader, device)
+
+    examples = enumerate(test_loader)
+    _, (x_clean_example, x_noisy_example, labels_example) = next(examples)
+    x_noisy_example = x_noisy_example.to(device)
     
-    scatter_plot(test_latent)
- 
+    # excercise 2: latent space
+    with torch.no_grad():
+        AE.eval()
 
+        # first 10 digits are ordered, for the latent space we only need the encoder
+        test_latent = AE.encoder(x_clean_example[:10].to(device))
+        test_latent = test_latent.detach().cpu()
 
-""" # # move back to cpu    
-recon = recon.detach().cpu()
-latent = latent.detach().cpu()
-x_clean = x_clean.detach().cpu()
-x_noisy = x_noisy.detach().cpu()
-
-batch_size_TEST = 1
-
-# get X_clean_exsample
-x_clean_test  = test_loader.dataset.Clean_Images[0:10]
-
-recon_test, latent_test = AE(x_clean_test.to(device))
-recon_test = recon_test.detach().cpu()
-
-#plot_images_exercise_1(x_clean_test, recon_test)
-#plot_images_exercise_1(x_clean, recon)
-
-
-#train.plot_loss(train_losses=train_losses, valid_losses=valid_losses) """
-
-# %% HINT
-#hint: if you do not care about going over the data in mini-batches but rather want the entire dataset use:
-""" 
-x_clean_train = train_loader.dataset.Clean_Images
-x_noisy_train = train_loader.dataset.Noisy_Images
-labels_train  = train_loader.dataset.Labels
-
-x_clean_test  = test_loader.dataset.Clean_Images
-x_noisy_test  = test_loader.dataset.Noisy_Images
-labels_test   = test_loader.dataset.Labels """
-
-# use these 10 examples as representations for all digits
-""" 
-x_clean_example = x_clean_test[0:10,:,:,:]
-x_noisy_example = x_noisy_test[0:10,:,:,:]
-labels_example = labels_test[0:10] """
+        scatter_plot(test_latent)

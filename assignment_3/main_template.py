@@ -23,15 +23,17 @@ def scatter_plot(mnist_points):
     :param mnist_points: MNIST feature vectors (digits, points, (x0, y0)) = (10, 20, ndim)
     """
     colors = plt.cm.Paired(np.linspace(0, 1, len(mnist_points)))
-    fig, ax = plt.subplots(figsize=(7, 5))
+    fig, ax = plt.subplots(figsize=(10, 5))
 
     for (points, color, digit) in zip(mnist_points, colors, range(10)):
         ax.scatter([item[0] for item in points],
                    [item[1] for item in points],
-                   color=color, label='digit{}'.format(digit))
+                   color=color, s=80, label='digit{}'.format(digit))
 
     ax.grid(True)
     ax.legend()
+    ax.set_xlabel('h0')
+    ax.set_ylabel('h1')
     plt.show()
 
 def load_model(model, filename):
@@ -95,12 +97,11 @@ def test_model(model, test_loader, device):
     #test_losses = test_losses.detech().cpu()
     recon = recon.detach().cpu()
     
-    return test_losses,recon,latent,test_label
+    return test_losses, recon, latent, test_label
 
 
 
 if __name__ == "__main__":
-
     # set torches random seed
     torch.random.manual_seed(0)
 
@@ -135,12 +136,15 @@ if __name__ == "__main__":
     #                                                     criterion, n_epochs, device, 
     #                                                     write_to_file=True)
 
-    # test_losses, test_recon, test_latent, test_label = test_model(AE, test_loader, device)
-
+   
+    # get first minibatch
     examples = enumerate(test_loader)
     _, (x_clean_example, x_noisy_example, labels_example) = next(examples)
-    x_noisy_example = x_noisy_example.to(device)
     
+    # excercise 1: get model output
+    test_losses, test_recon, test_latent, test_label = test_model(AE, test_loader, device)
+    plot_images_exercise_1(x_clean_example, test_recon)
+
     # excercise 2: latent space
     with torch.no_grad():
         AE.eval()

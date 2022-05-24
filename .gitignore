@@ -136,4 +136,5 @@ data
 # local test code
 local_test.py
 
-
+# models
+assignment_3/models/*

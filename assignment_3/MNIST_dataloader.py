@@ -32,8 +32,8 @@ class Noisy_MNIST(Dataset):
             data = Clean_MNIST.data.unsqueeze(1)
             idx = torch.load('assignment_3/test_idx.tar')
             data[:,:] = data[idx,:]
-            
-        
+            Clean_MNIST.targets[:] = Clean_MNIST.targets[idx]  # also apply new idx to labels      
+
         # reshape and normalize
         resizer = transforms.Resize(32)
         resized_data = resizer(data)*1.0

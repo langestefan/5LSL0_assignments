@@ -180,6 +180,10 @@ def train_model(model, train_loader, valid_loader, optimizer, criterion, n_epoch
     -------
     model : model class
         The trained model.
+    training_losses : list
+        The training loss for each epoch.
+    validation_losses : list
+        The validation loss for each epoch.
     """
     # to keep track of loss
     train_losses = []

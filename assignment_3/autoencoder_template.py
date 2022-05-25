@@ -84,6 +84,43 @@ class AE(nn.Module):
         r = self.decoder(h)
         return r, h
 
+
+# classifier for excercise 4
+class Classifier(nn.Module):
+    def __init__(self):
+        super(Classifier, self).__init__()
+        # create layers here
+        self.classifier = nn.Sequential(
+            # input is N, 1, 32, 32
+            nn.Conv2d(in_channels=1, out_channels=16, kernel_size=(3, 3), stride=1, padding=1), # N, 16, 32, 32
+            nn.BatchNorm2d(num_features=16),
+            nn.ReLU(True),
+            nn.MaxPool2d(kernel_size=2), # N, 16, 16, 16
+            nn.Conv2d(in_channels=16, out_channels=16, kernel_size=(3, 3), stride=1, padding=1), # N, 16, 16, 16
+            nn.BatchNorm2d(num_features=16),
+            nn.ReLU(True),
+            nn.MaxPool2d(kernel_size=2), # N, 16, 8, 8
+            nn.Conv2d(in_channels=16, out_channels=16, kernel_size=(3, 3), stride=1, padding=1), # N, 16, 8, 8
+            nn.BatchNorm2d(num_features=16),
+            nn.ReLU(True),
+            nn.MaxPool2d(kernel_size=2), # N, 16, 4, 4
+            nn.Conv2d(in_channels=16, out_channels=16, kernel_size=(3, 3), stride=1, padding=1), # N, 16, 4, 4
+            nn.BatchNorm2d(num_features=16),
+            nn.ReLU(True),
+            nn.MaxPool2d(kernel_size=2), # N, 16, 2, 2 = 64
+
+            # classification head
+            nn.Flatten(),
+            nn.Linear(in_features=64, out_features=10))
+            # we will use CrossEntropyLoss, which already uses a LogSoftmax # nn.LogSoftmax(dim=1)
+
+        
+    def forward(self, x):
+        # use the created layers here
+        classifier_scores = self.classifier(x)
+        return classifier_scores
+
+
 def test():
     # test encoder part 
     #x = torch.randn((1, 1, 32, 32))   

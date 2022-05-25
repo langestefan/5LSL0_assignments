@@ -27,7 +27,7 @@ def load_model(model, filename):
     return model
 
 
-def test_model(model, criterion, test_loader, device):
+def test_model(model, criterion, test_loader, device, use_noisy_images=False):
     """ Test the trained model.
     Args:
         model (Model class): Trained model to test.
@@ -38,7 +38,7 @@ def test_model(model, criterion, test_loader, device):
     """
     latent_list = []  # to store the latent representation of the whole dataset
     output_list = []  # to store the reconstructed output images of the whole dataset
-    label_list = []  # to store the labels of the whole dataset
+    label_list = []  # to store the groundtruth labels of the whole dataset
 
     test_loss = 0
 
@@ -47,13 +47,17 @@ def test_model(model, criterion, test_loader, device):
     # go over all minibatches
     with torch.no_grad():
         for batch_idx,(x_clean, x_noisy, test_label) in enumerate(tqdm(test_loader, position=0, leave=False, ascii=False)):
-                    
-            # move to device
+
+            image_batch = x_clean if use_noisy_images else x_noisy
             x_clean = x_clean.to(device)
 
             # forward pass
-            output, latent = model(x_clean)        
+            image_batch = image_batch.to(device)
+            output, latent = model(image_batch)
+            
+            output = output.to(device)            
             latent = latent.detach().cpu()
+
             test_loss = criterion(output, x_clean)
 
             # append latent representation and the output of minibatch to the list
@@ -109,7 +113,7 @@ def plot_examples(clean_images, noisy_images, prediction, num_examples=10):
     plt.show()
 
 
-def plot_loss(train_losses, valid_losses):
+def plot_loss(train_losses, valid_losses, save_path):
     """
     Plots the loss.
     -------
@@ -131,8 +135,8 @@ def plot_loss(train_losses, valid_losses):
     plt.ylabel('Loss', fontsize="x-large")
     plt.legend(fontsize="x-large")
     plt.grid(True)
-    plt.xticks(np.arange(0, num_epochs, 10))
-    plt.savefig("loss.png", dpi=300, bbox_inches='tight')
+    plt.xticks(np.arange(0, num_epochs, 5))
+    plt.savefig(f"{save_path}", dpi=300, bbox_inches='tight')
     plt.show()
 
 
@@ -209,10 +213,105 @@ def calculate_loss(model, data_loader, criterion, device):
     # return the loss
     return loss / len(data_loader)
     # return loss
-            
+
+
+# test model excercise 4
+def test_model_ex4(model, criterion, test_loader, device):
+    """ Test the trained model.
+    Args:
+        model (Model class): Trained model to test.
+        x_test (torch.Tensor): Test data.
+        y_test (torch.Tensor): Test labels.
+    Returns:
+        float: Accuracy of the model on the test data.
+    """
+    pred_label_list = []  # to store the predicted labels
+    gt_label_list = []  # to store the groundtruth labels 
+
+    test_loss = 0
+
+    model.eval()
+
+    # go over all minibatches
+    with torch.no_grad():
+        for batch_idx,(x_clean, x_noisy, test_label) in enumerate(tqdm(test_loader, position=0, leave=False, ascii=False)):
+                    
+            # move to device
+            x_clean = x_clean.to(device)
+
+            # forward pass
+            pred_labels = model(x_clean)  
+            test_loss = criterion(pred_labels, test_label.to(device))
+
+            # convert pred_labels probabilities to class labels
+            # indice position also corresponds to the class label. Pos 0 = digit 0, pos 1 = digit 1, pos 2 = digit 2, etc.
+            pred_labels = torch.argmax(pred_labels, dim=1)
+
+            # append outputs of minibatch to the list
+            pred_label_list.append(pred_labels.detach().cpu())
+            gt_label_list.append(test_label.detach().cpu())
+
+            # add loss to the total loss
+            test_loss += test_loss.item()
+
+        # print the average loss for this epoch
+        test_losses = test_loss / len(test_loader)
+
+        print(f"Test loss is {test_losses}.")
+        
+        return test_losses, pred_label_list, gt_label_list
+
+
+
+# calculate validation loss for excercise 4 (classification)
+def calculate_loss_ex4(model, data_loader, criterion, device):
+    """
+    Calculate the loss on the given data set.
+    -------
+    model : model class
+        Model structure to fit, as defined by build_model().
+    data_loader : torch.utils.data.DataLoader
+        Data loader to use for the data set.
+    criterion : torch.nn.modules.loss
+        Loss function to use.
+    device : torch.device
+        Device to use for the model.
+    -------
+    loss : float    
+        The loss on the data set.
+    """
+    # set model to evaluation mode
+    model.eval()
+
+    # initialize loss
+    loss = 0
+
+    # loop over batches
+    for batch_idx, (clean_images, noisy_images, target_labels) in enumerate(tqdm(data_loader, position=0, leave=False, ascii=False)):
+
+            # flatten the images
+            #clean_images = clean_images.view(clean_images.shape[0], -1)
+            #noisy_images = noisy_images.view(noisy_images.shape[0], -1)   
+
+            # move to GPU if available
+            #noisy_images = noisy_images.to(device),
+            clean_images = clean_images.to(device)
+
+            # forward pass
+            output_labels = model(clean_images)
+           
+            # calculate loss
+            loss += criterion(output_labels, target_labels.to(device)).item()
+
+    # return the loss
+    return loss / len(data_loader)
+    # return loss
+
+
+
 
 # train model function
-def train_model(model, train_loader, valid_loader, optimizer, criterion, n_epochs, device, write_to_file=True):
+def train_model(model, train_loader, valid_loader, optimizer, criterion, n_epochs, device, write_to_file=True, path_to_save_model=None):
     """
     Fit the model on the training data set.
     Arguments
@@ -233,6 +332,8 @@ def train_model(model, train_loader, valid_loader, optimizer, criterion, n_epoch
         Device to use for training.
     write_to_file : bool
         Whether to write the model parameters to a file.
+    path_to_save_model : str
+        Path to save the model parameters to.
 
     Returns
     -------
@@ -260,12 +361,11 @@ def train_model(model, train_loader, valid_loader, optimizer, criterion, n_epoch
 
             # move to device
             x_clean = x_clean.to(device)
-            x_noisy = x_noisy.to(device)
             label = label.to(device)
 
             # forward pass
-            output, latent = model(x_clean)
-            loss = criterion(output, x_clean)
+            output = model(x_clean)
+            loss = criterion(output, label)
         
             # backward pass, update weights
             optimizer.zero_grad()
@@ -276,9 +376,9 @@ def train_model(model, train_loader, valid_loader, optimizer, criterion, n_epoch
             train_loss += loss.item()
 
         # calculate validation loss
-        valid_loss = calculate_loss(model, valid_loader, criterion, device)
+        valid_loss = calculate_loss_ex4(model, valid_loader, criterion, device)
 
-        # print the average loss for this epoch
+        # average loss for this epoch = train_loss / n_batches
         train_loss /= len(train_loader)
         
         train_losses.append(train_loss)
@@ -287,10 +387,10 @@ def train_model(model, train_loader, valid_loader, optimizer, criterion, n_epoch
 
         # write the model parameters to a file every 5 epochs
         if write_to_file and epoch % 5 == 0:
-            torch.save(model.state_dict(), f"assignment_3/models/AE_model_checkpoint_{epoch+1}_epochs.pth")
+            torch.save(model.state_dict(), f"{path_to_save_model}_{epoch}_epochs.pth")
 
     if write_to_file:
-        torch.save(model.state_dict(), f"assignment_3/models/AE_model_best_{epoch+1}_epochs.pth")
+        torch.save(model.state_dict(), f"{path_to_save_model}_{epoch}_epochs.pth")
 
     # return the trained model
     return model, train_losses, valid_losses

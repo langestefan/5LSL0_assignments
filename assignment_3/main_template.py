@@ -93,18 +93,13 @@ def nearest_neighbour_exercise_3(train_latent, test_latent, train_labels, test_l
     train_labels_neighbours = train_labels[train_latent_indices]
 
     # compare the labels of the nearest neighbour and the test data
-    correct_predictions = np.equal(train_labels_neighbours, test_labels)
-    print("correct predictions shape: ", np.shape(correct_predictions))
-    print("correct predictions ", correct_predictions)
-
     # calculate the accuracy by taking only the diagonal elements
+    correct_predictions = np.equal(train_labels_neighbours, test_labels)
     accuracy = np.mean(np.diagonal(correct_predictions))
     print("Accuracy: ", accuracy)
 
     # calculate the confusion matrix
     conf_matrix = confusion_matrix(test_labels, train_labels_neighbours, normalize='true')
-    print("Confusion matrix: \n", conf_matrix)
-    print("Confusion matrix shape: ", np.shape(conf_matrix))
 
     # get percentages of each class
     class_percentages = np.diagonal(conf_matrix)
@@ -168,9 +163,6 @@ if __name__ == "__main__":
     output_tensor_train = torch.cat(output_train, dim=0)
     latent_tensor_train = torch.cat(latent_train, dim=0)
     label_tensor_train = torch.cat(label_train, dim=0)
-    print("Shape: {}".format(np.shape(output_tensor_train)))
-    print("Shape: {}".format(np.shape(latent_tensor_train)))
-    print("Shape: {}".format(np.shape(label_tensor_train)))
     
     # excercise 1: get model output
     losses_test, output_test, latent_test, label_test = train.test_model(AE, criterion, test_loader, device)
@@ -179,9 +171,6 @@ if __name__ == "__main__":
     output_tensor_test = torch.cat(output_test, dim=0)
     latent_tensor_test = torch.cat(latent_test, dim=0)
     label_tensor_test = torch.cat(label_test, dim=0)
-    print("Shape: {}".format(np.shape(output_tensor_test)))
-    print("Shape: {}".format(np.shape(latent_tensor_test)))
-    print("Shape: {}".format(np.shape(label_tensor_test)))
 
     # print the first 10 digits of test set (0-9)
     # examples = enumerate(test_loader)
@@ -195,7 +184,5 @@ if __name__ == "__main__":
     ### excercise 3: 1-nearest neighbour classification ###
     latent_tensor_train = torch.squeeze(latent_tensor_train) # collapse 1-dim
     latent_tensor_test = torch.squeeze(latent_tensor_test) # collapse 1-dim
-    print("latent_tensor_train: {}".format(np.shape(latent_tensor_train)))
-    print("latent_tensor_test: {}".format(np.shape(latent_tensor_test)))
 
     nearest_neighbour_exercise_3(latent_tensor_train, latent_tensor_test, label_tensor_train, label_tensor_test)

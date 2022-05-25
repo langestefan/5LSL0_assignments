@@ -14,6 +14,12 @@ import MNIST_dataloader
 import autoencoder_template
 import train
 
+# nearest neighbor excercise 3
+from sklearn.neighbors import NearestNeighbors
+from sklearn.metrics import confusion_matrix
+import pandas as pd
+import seaborn as sn
+
 # to fix a bug with numpy
 import os
 os.environ["KMP_DUPLICATE_LIB_OK"]="TRUE"
@@ -36,7 +42,7 @@ def scatter_plot(latent_tensor, label_tensor, n_points=10000):
 
     ax.grid(True)
 
-    # legend
+    # this trick makes sure all the labels in the legend are unique and only shown once
     handles, labels = plt.gca().get_legend_handles_labels()
     by_label = dict(zip(labels, handles))
     plt.legend(by_label.values(), by_label.keys())
@@ -45,16 +51,6 @@ def scatter_plot(latent_tensor, label_tensor, n_points=10000):
     ax.set_ylabel('h1')
     plt.show()
 
-def load_model(model, filename):
-    """ Load the trained model.
-    Args:
-        model (Model class): Untrained model to load.
-        filename (str): Name of the file to load the model from.
-    Returns:
-        Model: Model with parameters loaded from file.
-    """
-    model.load_state_dict(torch.load(filename))
-    return model
 
 def plot_images_exercise_1(x_data, model_output):
 
@@ -77,51 +73,55 @@ def plot_images_exercise_1(x_data, model_output):
     #plt.savefig("exercise_1.png",dpi=300,bbox_inches='tight')
     plt.show() 
 
-def test_model(model, test_loader, device):
-    """ Test the trained model.
-    Args:
-        model (Model class): Trained model to test.
-        x_test (torch.Tensor): Test data.
-        y_test (torch.Tensor): Test labels.
-    Returns:
-        float: Accuracy of the model on the test data.
+def nearest_neighbour_exercise_3(train_latent, test_latent, train_labels, test_labels):
     """
-    latent_list = []  # to store the latent representation of the whole dataset
-    output_list = []  # to store the reconstructed output images of the whole dataset
-    label_list = []  # to store the labels of the whole dataset
+    Nearest neighbour exercise 3. See: https://christianbernecker.medium.com/how-to-create-a-confusion-matrix-in-pytorch-38d06a7f04b7
+    Args:
+        train_latent: latent vectors of training data
+        test_latent: latent vectors of test data
+        train_labels: labels of training data
+        test_labels: labels of test data
+    """
+    # create a NearestNeighbors object
+    nbrs = NearestNeighbors(n_neighbors=1).fit(train_latent)
+    digits = np.linspace(0, 9, 10, dtype=np.int8)
 
-    test_loss = 0
+    # find the nearest neighbour for each image in x_data
+    distances, train_latent_indices = nbrs.kneighbors(test_latent)
 
-    model.eval()
+    # get the labels of the nearest neighbour
+    train_labels_neighbours = train_labels[train_latent_indices]
 
-    # go over all minibatches
-    with torch.no_grad():
-        for batch_idx,(x_clean, x_noisy, test_label) in enumerate(tqdm(test_loader, position=0, leave=False, ascii=False)):
-                    
-            # move to device
-            x_clean = x_clean.to(device)
+    # compare the labels of the nearest neighbour and the test data
+    correct_predictions = np.equal(train_labels_neighbours, test_labels)
+    print("correct predictions shape: ", np.shape(correct_predictions))
+    print("correct predictions ", correct_predictions)
 
-            # forward pass
-            output, latent = model(x_clean)        
-            latent = latent.detach().cpu()
-            test_loss = criterion(output, x_clean)
+    # calculate the accuracy by taking only the diagonal elements
+    accuracy = np.mean(np.diagonal(correct_predictions))
+    print("Accuracy: ", accuracy)
 
-            # append latent representation and the output of minibatch to the list
-            latent_list.append(latent.detach().cpu())
-            output_list.append(output.detach().cpu())
-            label_list.append(test_label.detach().cpu())
+    # calculate the confusion matrix
+    conf_matrix = confusion_matrix(test_labels, train_labels_neighbours, normalize='true')
+    print("Confusion matrix: \n", conf_matrix)
+    print("Confusion matrix shape: ", np.shape(conf_matrix))
 
-            # add loss to the total loss
-            test_loss += test_loss.item()
+    # get percentages of each class
+    class_percentages = np.diagonal(conf_matrix)
+    print("Class percentages: ", class_percentages)
 
-        # print the average loss for this epoch
-        test_losses = test_loss / len(test_loader)
+    # plot confusion matrix
+    df_cm = pd.DataFrame(conf_matrix, index = [i for i in digits],
+                        columns = [i for i in digits])
+    fig, ax = plt.subplots(figsize=(12, 7))
+    heatmap = sn.heatmap(df_cm, annot=True)
+    heatmap.set_xticklabels(heatmap.get_xmajorticklabels(), fontsize = 16)
+    heatmap.set_yticklabels(heatmap.get_ymajorticklabels(), fontsize = 16)
 
-        print(f"Test loss is {test_losses}.")
-        output = output.detach().cpu()
-        
-        return test_losses, output_list, latent_list, label_list
-
+    # axis titles
+    heatmap.set_ylabel('Groundtruth label', fontsize = 18)
+    heatmap.set_xlabel('1-nearest neighbour classification', fontsize = 18)
+    plt.savefig('assignment_3/figures/confusion_matrix_excercise_3.png', dpi=300, bbox_inches='tight')                       
 
 
 if __name__ == "__main__":
@@ -141,7 +141,7 @@ if __name__ == "__main__":
     AE = autoencoder_template.AE()
 
     # load the trained model 
-    AE = load_model(AE, "assignment_3/models/AE_model_best_50_epochs.pth")
+    AE = train.load_model(AE, "assignment_3/models/AE_model_best_50_epochs.pth")
 
     # create the optimizer
     criterion = nn.MSELoss()
@@ -160,24 +160,42 @@ if __name__ == "__main__":
     #                                                     criterion, n_epochs, device, 
     #                                                     write_to_file=True)
    
-    # get first minibatch
-    examples = enumerate(test_loader)
-    _, (x_clean_example, x_noisy_example, labels_example) = next(examples)
+    # get latent vectors for excercise 3, use the trained model on the train set
+    n_epochs = 1
+    losses_train, output_train, latent_train, label_train = train.test_model(AE, criterion, train_loader, device)
+
+    # concatenate all train outputs into a tensor
+    output_tensor_train = torch.cat(output_train, dim=0)
+    latent_tensor_train = torch.cat(latent_train, dim=0)
+    label_tensor_train = torch.cat(label_train, dim=0)
+    print("Shape: {}".format(np.shape(output_tensor_train)))
+    print("Shape: {}".format(np.shape(latent_tensor_train)))
+    print("Shape: {}".format(np.shape(label_tensor_train)))
     
     # excercise 1: get model output
-    test_losses, output_list, latent_list, label_list = test_model(AE, test_loader, device)
+    losses_test, output_test, latent_test, label_test = train.test_model(AE, criterion, test_loader, device)
+
+    # concatenate all test outputs into a tensor
+    output_tensor_test = torch.cat(output_test, dim=0)
+    latent_tensor_test = torch.cat(latent_test, dim=0)
+    label_tensor_test = torch.cat(label_test, dim=0)
+    print("Shape: {}".format(np.shape(output_tensor_test)))
+    print("Shape: {}".format(np.shape(latent_tensor_test)))
+    print("Shape: {}".format(np.shape(label_tensor_test)))
+
+    # print the first 10 digits of test set (0-9)
+    # examples = enumerate(test_loader)
+    # _, (x_clean_example, x_noisy_example, labels_example) = next(examples)
+    # plot_images_exercise_1(x_clean_example, output_tensor_test[:10])
 
 
-    print("label list first 10 elements: ", labels_example)
+    ### excercise 2: latent space ###
+    # scatter_plot(latent_tensor_test, label_tensor_test)
 
-    # concatenate all outputs into a tensor
-    output_tensor = torch.cat(output_list, dim=0)
-    latent_tensor = torch.cat(latent_list, dim=0)
-    label_tensor = torch.cat(label_list, dim=0)
-    print("Shape: {}".format(np.shape(output_tensor)))
-    print("Shape: {}".format(np.shape(latent_tensor)))
+    ### excercise 3: 1-nearest neighbour classification ###
+    latent_tensor_train = torch.squeeze(latent_tensor_train) # collapse 1-dim
+    latent_tensor_test = torch.squeeze(latent_tensor_test) # collapse 1-dim
+    print("latent_tensor_train: {}".format(np.shape(latent_tensor_train)))
+    print("latent_tensor_test: {}".format(np.shape(latent_tensor_test)))
 
-    plot_images_exercise_1(x_clean_example, output_tensor[:10])
-
-    # excercise 2: latent space
-    scatter_plot(latent_tensor, label_tensor)
+    nearest_neighbour_exercise_3(latent_tensor_train, latent_tensor_test, label_tensor_train, label_tensor_test)

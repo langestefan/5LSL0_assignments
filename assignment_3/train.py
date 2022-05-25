@@ -15,6 +15,64 @@ def reshape_images(images):
     return images_reshaped
 
 
+def load_model(model, filename):
+    """ Load the trained model.
+    Args:
+        model (Model class): Untrained model to load.
+        filename (str): Name of the file to load the model from.
+    Returns:
+        Model: Model with parameters loaded from file.
+    """
+    model.load_state_dict(torch.load(filename))
+    return model
+
+
+def test_model(model, criterion, test_loader, device):
+    """ Test the trained model.
+    Args:
+        model (Model class): Trained model to test.
+        x_test (torch.Tensor): Test data.
+        y_test (torch.Tensor): Test labels.
+    Returns:
+        float: Accuracy of the model on the test data.
+    """
+    latent_list = []  # to store the latent representation of the whole dataset
+    output_list = []  # to store the reconstructed output images of the whole dataset
+    label_list = []  # to store the labels of the whole dataset
+
+    test_loss = 0
+
+    model.eval()
+
+    # go over all minibatches
+    with torch.no_grad():
+        for batch_idx,(x_clean, x_noisy, test_label) in enumerate(tqdm(test_loader, position=0, leave=False, ascii=False)):
+                    
+            # move to device
+            x_clean = x_clean.to(device)
+
+            # forward pass
+            output, latent = model(x_clean)        
+            latent = latent.detach().cpu()
+            test_loss = criterion(output, x_clean)
+
+            # append latent representation and the output of minibatch to the list
+            latent_list.append(latent.detach().cpu())
+            output_list.append(output.detach().cpu())
+            label_list.append(test_label.detach().cpu())
+
+            # add loss to the total loss
+            test_loss += test_loss.item()
+
+        # print the average loss for this epoch
+        test_losses = test_loss / len(test_loader)
+
+        print(f"Test loss is {test_losses}.")
+        output = output.detach().cpu()
+        
+        return test_losses, output_list, latent_list, label_list
+
+
 def plot_examples(clean_images, noisy_images, prediction, num_examples=10):
     """
     Plots some examples from the dataloader.

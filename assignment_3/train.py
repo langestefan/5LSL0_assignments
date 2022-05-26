@@ -311,7 +311,7 @@ def calculate_loss_ex4(model, data_loader, criterion, device):
 
 
 # train model function
-def train_model(model, train_loader, valid_loader, optimizer, criterion, n_epochs, device, write_to_file=True, path_to_save_model=None):
+def train_model(model, train_loader, valid_loader, optimizer, criterion, n_epochs, device, write_to_file=True, save_path=None):
     """
     Fit the model on the training data set.
     Arguments
@@ -356,16 +356,17 @@ def train_model(model, train_loader, valid_loader, optimizer, criterion, n_epoch
         valid_loss = 0
 
         # go over all minibatches
-        for batch_idx,(x_clean, x_noisy, label) in enumerate(tqdm(train_loader, position=0, leave=False, ascii=False)):
+        for batch_idx,(x_clean, __, label) in enumerate(tqdm(train_loader, position=0, leave=False, ascii=False)):
             # fill in how to train your network using only the clean images
 
             # move to device
             x_clean = x_clean.to(device)
-            label = label.to(device)
+            # label = label.to(device)
 
             # forward pass
-            output = model(x_clean)
-            loss = criterion(output, label)
+            output, latent = model(x_clean)
+            # loss = criterion(output, label) # for labels
+            loss = criterion(output, x_clean) # for autoencoder
         
             # backward pass, update weights
             optimizer.zero_grad()
@@ -376,7 +377,8 @@ def train_model(model, train_loader, valid_loader, optimizer, criterion, n_epoch
             train_loss += loss.item()
 
         # calculate validation loss
-        valid_loss = calculate_loss_ex4(model, valid_loader, criterion, device)
+        # valid_loss = calculate_loss_ex4(model, valid_loader, criterion, device) # classifier
+        valid_loss = calculate_loss(model, valid_loader, criterion, device) # autoencoder 
 
         # average loss for this epoch = train_loss / n_batches
         train_loss /= len(train_loader)
@@ -387,10 +389,10 @@ def train_model(model, train_loader, valid_loader, optimizer, criterion, n_epoch
 
         # write the model parameters to a file every 5 epochs
         if write_to_file and epoch % 5 == 0:
-            torch.save(model.state_dict(), f"{path_to_save_model}_{epoch}_epochs.pth")
+            torch.save(model.state_dict(), f"{save_path}_{epoch}_epochs.pth")
 
     if write_to_file:
-        torch.save(model.state_dict(), f"{path_to_save_model}_{epoch}_epochs.pth")
+        torch.save(model.state_dict(), f"{save_path}_{epoch}_epochs.pth")
 
     # return the trained model
     return model, train_losses, valid_losses

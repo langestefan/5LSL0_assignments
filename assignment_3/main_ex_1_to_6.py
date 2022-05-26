@@ -201,8 +201,8 @@ if __name__ == "__main__":
     # define parameters
     data_loc = 'data' #change the data location to something that works for you
     batch_size = 64
-    # n_epochs = 50
-    # learning_rate = 3e-4
+    n_epochs = 50
+    learning_rate = 3e-4
 
     # get dataloader
     train_loader, valid_loader, test_loader = MNIST_dataloader.create_dataloaders(data_loc, batch_size)
@@ -211,11 +211,11 @@ if __name__ == "__main__":
     AE = autoencoder_template.AE()
 
     # # load the trained model 
-    AE = train.load_model(AE, "assignment_3/models/excercise1/AE_model_best_50_epochs.pth")
+    # AE = train.load_model(AE, "assignment_3/models/excercise1/AE_model_best_50_epochs.pth")
 
     # create the optimizer
     criterion_ex1 = nn.MSELoss()
-    # optimizer = optim.Adam(AE.parameters(), learning_rate, weight_decay=1e-5)
+    optimizer = optim.Adam(AE.parameters(), learning_rate, weight_decay=1e-5)
 
     # define the device
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu") #"cpu"
@@ -225,13 +225,14 @@ if __name__ == "__main__":
     AE.to(device)
 
     # train the model excercise 1
-    # AE, train_losses, valid_losses = train.train_model(AE, train_loader, 
-    #                                                     valid_loader, optimizer, 
-    #                                                     criterion_ex1, n_epochs, device, 
-    #                                                     write_to_file=True)
+    AE, train_losses, valid_losses = train.train_model(AE, train_loader, 
+                                                        valid_loader, optimizer, 
+                                                        criterion_ex1, n_epochs, device, 
+                                                        write_to_file=True,
+                                                        save_path='assignment_3/models/excercise1/AE')
 
     # get latent vectors for excercise 3, use the trained model on the train set
-    # losses_train, output_train, latent_train, label_train = train.test_model(model, criterion_ex1, train_loader, device)
+    # losses_train, output_train, latent_train, label_train = train.test_model(AE, criterion_ex1, train_loader, device)
 
     # # concatenate all train outputs into a tensor
     # output_tensor_train = torch.cat(output_train, dim=0)
@@ -338,9 +339,9 @@ if __name__ == "__main__":
     output_tensor_test = torch.cat(output_test, dim=0)
     label_tensor_test = torch.cat(label_test, dim=0)
 
-    plt.figure(figsize=(12,6))
-    plt.imshow(output_tensor_test[0, 0, :, :], cmap='gray')
-    plt.show()
+    # plt.figure(figsize=(12,6))
+    # plt.imshow(output_tensor_test[0, 0, :, :], cmap='gray')
+    # plt.show()
 
     # plot the first 10 digits of test set (0-9)    
     plot_images_exercise_6(x_noisy_example[:10], output_tensor_test[:10], 

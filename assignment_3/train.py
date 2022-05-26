@@ -27,7 +27,7 @@ def load_model(model, filename):
     return model
 
 
-def test_model(model, criterion, test_loader, device, use_noisy_images=False):
+def test_model(model, criterion, test_loader, device, use_noisy_images=True):
     """ Test the trained model.
     Args:
         model (Model class): Trained model to test.
@@ -48,13 +48,13 @@ def test_model(model, criterion, test_loader, device, use_noisy_images=False):
     with torch.no_grad():
         for batch_idx,(x_clean, x_noisy, test_label) in enumerate(tqdm(test_loader, position=0, leave=False, ascii=False)):
 
-            image_batch = x_clean if use_noisy_images else x_noisy
+            image_batch = x_noisy if use_noisy_images else x_clean
             x_clean = x_clean.to(device)
 
             # forward pass
             image_batch = image_batch.to(device)
             output, latent = model(image_batch)
-            
+
             output = output.to(device)            
             latent = latent.detach().cpu()
 

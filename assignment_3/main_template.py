@@ -156,21 +156,38 @@ def plot_mnist_grid_excercise_5(images, n_img_x, n_img_y, save_path=None):
 
 
 
-def plot_images_exercise_6(noisy_imgs, model_out_imgs, clean_imgs, save_path=None):
+def plot_images_exercise_6(noisy_images, model_out_images, clean_images, save_path=None):
     """
     plot conisting of 10 collumns and 3 rows. Each collumn should show one of the digits. 
     Row 1 should show the noisy input, row 2 should show the output, 
     row 3 should showthe corresponding clean image x_clean_example.
 
     Args:
-        noisy_imgs: noisy images
-        model_out_imgs: model output images
-        clean_imgs: clean images
+        noisy_images: noisy images
+        model_out_images: model output images
+        clean_images: clean images
     """
     # plot the images in a grid
-    plt.figure(figsize=(12, 6))
+    plt.figure(figsize=(12, 4))
+    for j in range(3):
+        for i in range(10):
+            img_idx = i + j * 10 + 1
+            digit_idx = i
 
+            plt.subplot(3, 10, i+1)
+            plt.imshow(noisy_images[digit_idx, 0, :, :], cmap='gray')
+            plt.xticks([])
+            plt.yticks([])
 
+            plt.subplot(3, 10, i+10+1)
+            plt.imshow(model_out_images[digit_idx, 0, :, :], cmap='gray')
+            plt.xticks([])
+            plt.yticks([])
+
+            plt.subplot(3, 10, i+20+1)
+            plt.imshow(clean_images[digit_idx, 0, :, :], cmap='gray')
+            plt.xticks([])
+            plt.yticks([])
 
     plt.tight_layout()
     plt.savefig(f'{save_path}/exercise_6.png', dpi=300, bbox_inches='tight')
@@ -311,6 +328,9 @@ if __name__ == "__main__":
 
     
     ### excercise 6: Noisy image input to auto-encoder ###
+    examples = enumerate(test_loader)
+    _, (x_clean_example, x_noisy_example, labels_example) = next(examples)
+        
     # get model output from noisy input images
     __, output_test, __, label_test = train.test_model(AE, criterion_ex1, test_loader, device, use_noisy_images=True)
 
@@ -318,11 +338,11 @@ if __name__ == "__main__":
     output_tensor_test = torch.cat(output_test, dim=0)
     label_tensor_test = torch.cat(label_test, dim=0)
 
-    # organize output_tensor_test according to label_tensor_test
-    output_tensor_test_dict = {}
-    for i in range(10):
-        output_tensor_test_dict[i] = output_tensor_test[label_tensor_test == i]
+    plt.figure(figsize=(12,6))
+    plt.imshow(output_tensor_test[0, 0, :, :], cmap='gray')
+    plt.show()
 
-    # plot the first 10 digits of test set (0-9)
-    # plot_images_exercise_6(output_tensor_test_dict[2]
+    # plot the first 10 digits of test set (0-9)    
+    plot_images_exercise_6(x_noisy_example[:10], output_tensor_test[:10], 
+                           x_clean_example[:10], save_path='assignment_3/figures/')
 

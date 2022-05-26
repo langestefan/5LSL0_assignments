@@ -25,7 +25,7 @@ class Encoder(nn.Module):
             nn.BatchNorm2d(16),
             nn.ReLU(True),
             nn.MaxPool2d(2), # N, 16, 2, 2
-            nn.Conv2d(in_channels=16, out_channels=1, kernel_size=(2,2), stride=1, padding=(2,1)), # N, 1, 5, 3
+            nn.Conv2d(in_channels=16, out_channels=1, kernel_size=(3,3), stride=1, padding=(2,1)), # N, 1, 4, 2
             nn.BatchNorm2d(1),
             nn.ReLU(True),
             nn.MaxPool2d(2), # N, 1, 2, 1

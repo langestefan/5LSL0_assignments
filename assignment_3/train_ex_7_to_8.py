@@ -17,7 +17,7 @@ def load_model(model, filename):
     return model
 
 
-def test_model(model, criterion, test_loader, device, use_noisy_images=True):
+def test_model(model, criterion, test_loader, device, use_noisy_images=False):
     """ Test the trained model.
     Args:
         model (Model class): Trained model to test.
@@ -29,7 +29,7 @@ def test_model(model, criterion, test_loader, device, use_noisy_images=True):
     latent_list = []  # to store the latent representation of the whole dataset
     output_list = []  # to store the reconstructed output images of the whole dataset
     label_list = []  # to store the groundtruth labels of the whole dataset
-
+    reconstruction_term_weight = 1
     test_loss = 0
 
     model.eval()
@@ -42,27 +42,35 @@ def test_model(model, criterion, test_loader, device, use_noisy_images=True):
             x_clean = x_clean.to(device)
 
             # forward pass
-            image_batch = image_batch.to(device)
-            output, latent = model(image_batch)
+            output_decoder, x_sample, x_mean, x_log_var = model(x_clean)
+            # total loss = reconstruction loss + KL divergence
+            # kl_divergence = (0.5 * (z_mean**2 + 
+            #                        torch.exp(z_log_var) - z_log_var - 1)).sum()
+            train_kl_loss = -0.5 * torch.sum(1 + x_log_var 
+                                      - x_mean**2 
+                                      - torch.exp(x_log_var), 
+                                      axis=1) # sum over latent dimension
 
-            output = output.to(device)            
-            latent = latent.detach().cpu()
-
-            test_loss = criterion(output, x_clean)
-
+            train_kl_loss = train_kl_loss.mean() # average over batch dimension
+    
+            test_loss = criterion(output_decoder, x_clean)
+            test_loss = test_loss.sum() # sum over pixels
+            test_loss = test_loss.mean() # average over batch dimension
+            
+            test_batch_loss = reconstruction_term_weight*test_loss + train_kl_loss
             # append latent representation and the output of minibatch to the list
-            latent_list.append(latent.detach().cpu())
-            output_list.append(output.detach().cpu())
+            latent_list.append(x_sample.detach().cpu())
+            output_list.append(output_decoder.detach().cpu())
             label_list.append(test_label.detach().cpu())
 
             # add loss to the total loss
-            test_loss += test_loss.item()
+            test_batch_loss += test_batch_loss.item()
 
         # print the average loss for this epoch
-        test_losses = test_loss / len(test_loader)
+        test_losses = test_batch_loss / len(test_loader)
 
         print(f"Test loss is {test_losses}.")
-        output = output.detach().cpu()
+        
         
         return test_losses, output_list, latent_list, label_list
 
@@ -239,14 +247,14 @@ def train_model(reconstruction_term_weight, model, train_loader, valid_loader, o
             # forward pass
             output_decoder, x_sample, x_mean, x_log_var = model(x_clean)
             # total loss = reconstruction loss + KL divergence
-            #kl_divergence = (0.5 * (z_mean**2 + 
+            # kl_divergence = (0.5 * (z_mean**2 + 
             #                        torch.exp(z_log_var) - z_log_var - 1)).sum()
             train_kl_loss = -0.5 * torch.sum(1 + x_log_var 
                                       - x_mean**2 
                                       - torch.exp(x_log_var), 
                                       axis=1) # sum over latent dimension
 
-            batchsize = train_kl_loss.size(0)
+            # batchsize = train_kl_loss.size(0)
             train_kl_loss = train_kl_loss.mean() # average over batch dimension
     
             train_reconstruction_loss = criterion(output_decoder, x_clean)
@@ -277,14 +285,14 @@ def train_model(reconstruction_term_weight, model, train_loader, valid_loader, o
 
         # write the model parameters to a file every 5 epochs
         if write_to_file and epoch % 5 == 0:
-            torch.save(model.state_dict(), f"{save_path}_{epoch}_epochs.pth")
+            torch.save(model.state_dict(), f"{save_path}_{epoch+1}_epochs.pth")
 
         print('Time elapsed: %.2f min' % ((time.time() - start_time)/60))
     
     print('Total Training Time: %.2f min' % ((time.time() - start_time)/60))
 
     if write_to_file:
-        torch.save(model.state_dict(), f"{save_path}_{epoch}_epochs.pth")
+        torch.save(model.state_dict(), f"{save_path}_{epoch+1}_epochs.pth")
 
     # return the trained model
     return model, train_kl_losses, train_reconstruction_losses, train_batch_losses, train_epoch_losses

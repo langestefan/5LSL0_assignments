@@ -217,6 +217,8 @@ def train_model(model, train_loader, valid_loader, optimizer, criterion, n_epoch
     validation_losses : list
         The validation loss for each epoch.
     """
+    # set model to training mode
+    model.train()
     # to keep track of loss
     train_kl_losses = []
     train_reconstruction_losses = []
@@ -228,14 +230,9 @@ def train_model(model, train_loader, valid_loader, optimizer, criterion, n_epoch
     # go over all epochs
     for epoch in range(n_epochs):
         print(f"\nTraining Epoch {epoch}:")
-
-        # set model to training mode
-        model.train()
-
         train_kl_loss = 0
         train_reconstruction_loss = 0
         train_batch_loss = 0
-
         # go over all minibatches
         for batch_idx,(x_clean, __, label) in enumerate(tqdm(train_loader, position=0, leave=False, ascii=False)):
             # fill in how to train your network using only the clean images
@@ -248,26 +245,13 @@ def train_model(model, train_loader, valid_loader, optimizer, criterion, n_epoch
             output_decoder, x_sample, x_mean, x_log_var = model(x_clean)
             
             # calculate loss
-            train_reconstruction_loss = criterion(output_decoder, x_clean).sum()
+            #train_reconstruction_loss = criterion(output_decoder, x_clean).sum()
+            train_reconstruction_loss = ((output_decoder - x_clean)**2).sum()
             train_kl_loss = 0.5 * (x_mean**2 + x_log_var**2 - torch.log(x_log_var)- 1).sum()
+            # print("x_mean :",x_mean)
+            # print("x_log_var :",x_log_var)
+            # print("kl loss :",train_kl_loss)
 
-
-
-            """ # total loss = reconstruction loss + KL divergence
-            # train_kl_loss = (0.5 * (x_mean**2 + 
-            #                         torch.exp(x_log_var) - x_log_var - 1)).sum()
-            train_kl_loss = -0.5 * torch.sum(1 + x_log_var 
-                            - x_mean**2 
-                            - torch.exp(x_log_var), 
-                            axis=1) # sum over latent dimension
-
-            batchsize = train_kl_loss.size(0)
-            #train_kl_loss = train_kl_loss.mean() # average over batch dimension
-    
-            train_reconstruction_loss = criterion(output_decoder, x_clean, reduction='none')
-            train_reconstruction_loss = train_reconstruction_loss.view(batchsize, -1).sum(axis=1) # sum over pixels
-            #train_reconstruction_loss = train_reconstruction_loss.mean() # average over batch dimension
-            """
 
             train_batch_loss = train_reconstruction_loss + train_kl_loss
         
@@ -294,7 +278,7 @@ def train_model(model, train_loader, valid_loader, optimizer, criterion, n_epoch
         train_reconstruction_losses.append(train_reconstruction_loss)
         train_epoch_losses.append(train_batch_loss)
 
-        print(f"Average batch train loss for epoch {epoch+1} is {train_batch_loss}.")
+        print(f"Average batch train loss for epoch {epoch+1} is {train_batch_loss}.kl loss is {train_kl_loss} and reconstruction loss is {train_reconstruction_loss}")
 
         # write the model parameters to a file every 5 epochs
         if write_to_file and epoch % 5 == 0:

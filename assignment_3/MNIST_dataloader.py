@@ -74,11 +74,11 @@ def create_dataloaders(data_loc, batch_size):
 # %% test if the dataloaders work
 if __name__ == "__main__":
     # define parameters
-    data_loc = 'data' #change the datalocation to something that works for you
+    data_loc = 'assignment_3/data' #change the datalocation to something that works for you
     batch_size = 64
     
     # get dataloader
-    train_loader, test_loader = create_dataloaders(data_loc, batch_size)
+    train_loader, valid_loader, test_loader = create_dataloaders(data_loc, batch_size)
     
     # get some examples
     examples = enumerate(test_loader)
@@ -103,5 +103,5 @@ if __name__ == "__main__":
         plt.yticks([])
     
     plt.tight_layout()
-    plt.savefig("data_examples.png",dpi=300,bbox_inches='tight')
+    #plt.savefig("data_examples.png",dpi=300,bbox_inches='tight')
     plt.show() 

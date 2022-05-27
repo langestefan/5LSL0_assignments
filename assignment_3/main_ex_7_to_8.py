@@ -4,6 +4,8 @@ import torch.optim as optim
 import torch.nn as nn
 import torch
 import numpy as np
+import torch.nn.functional as F
+
 
 # from tqdm import tqdm
 from tqdm.auto import tqdm as tqdm
@@ -53,7 +55,6 @@ if __name__ == "__main__":
     batch_size = 64
     n_epochs = 5
     learning_rate = 3e-4
-    reconstruction_term_weight = 1
 
     # get dataloader
     train_loader, valid_loader, test_loader = MNIST_dataloader.create_dataloaders(data_loc, batch_size)
@@ -62,10 +63,10 @@ if __name__ == "__main__":
     model = VAE.VAE()
 
     # # load the trained model 
-    model = train_ex_7_to_8.load_model(model, "assignment_3/models/VAE_0_epochs.pth")
+    #model = train_ex_7_to_8.load_model(model, "assignment_3/models/VAE_5_epochs.pth")
 
     # create the optimizer
-    criterion_ex1 = nn.MSELoss()
+    criterion_ex1 = F.mse_loss
     optimizer = optim.Adam(model.parameters(), learning_rate, weight_decay=1e-5)
 
     # define the device
@@ -77,32 +78,27 @@ if __name__ == "__main__":
 
     # train the model excercise 1
     
-    model, train_kl_losses, train_reconstruction_losses, train_batch_losses, train_epoch_losses = train_ex_7_to_8.train_model(reconstruction_term_weight, model, train_loader, 
-                                                                                                                                valid_loader, optimizer, 
-                                                                                                                                criterion_ex1, n_epochs, device, 
-                                                                                                                                write_to_file=True,
-                                                                                                                                save_path='assignment_3/models/VAE')
+    model, train_kl_losses, train_reconstruction_losses, train_epoch_losses = train_ex_7_to_8.train_model(model, train_loader, 
+                                                                                                    valid_loader, optimizer, 
+                                                                                                    criterion_ex1, n_epochs, device, 
+                                                                                                    write_to_file=True,
+                                                                                                    save_path='assignment_3/models/VAE')
+    #print("kl_losses: ",  train_kl_losses)
     
 
-    # get latent vectors for excercise 3, use the trained model on the train set
-    # losses_train, output_train, latent_train, label_train = train.test_model(AE, criterion_ex1, train_loader, device)
+    # # excercise 7a: get model output
+    # test_losses, output_list, latent_list, label_list = train_ex_7_to_8.test_model(model, criterion_ex1, test_loader, device)
+    # print("shape of output_list: ", [t.size() for t in output_list])
 
-    # # concatenate all train outputs into a tensor
-    # output_tensor_train = torch.cat(output_train, dim=0)
-    # latent_tensor_train = torch.cat(latent_train, dim=0)
-    # label_tensor_train = torch.cat(label_train, dim=0)
-    
-    # # excercise 1: get model output
-    test_losses, output_list, latent_list, label_list = train_ex_7_to_8.test_model(model, criterion_ex1, test_loader, device)
-    #print("shape of output_list: ", [t.size() for t in output_list])
-    
+    #plot the loss
+    train_ex_7_to_8.plot_loss(train_kl_losses, train_reconstruction_losses, save_path='assignment_3/figures/excercise7a_loss.png')
 
     # # concatenate all test outputs into a tensor
-    output_tensor_test = torch.cat(output_list, dim=0)
+    # output_tensor_test = torch.cat(output_list, dim=0)
     # latent_tensor_test = torch.cat(latent_test, dim=0)
     # label_tensor_test = torch.cat(label_test, dim=0)
 
-    # print the first 10 digits of test set (0-9)
-    examples = enumerate(test_loader)
-    _, (x_clean_example, x_noisy_example, labels_example) = next(examples)
-    plot_images_exercise_7a(x_clean_example, output_tensor_test[:10])
+    # # print the first 10 digits of test set (0-9)
+    # examples = enumerate(test_loader)
+    # _, (x_clean_example, x_noisy_example, labels_example) = next(examples)
+    # plot_images_exercise_7a(x_clean_example, output_tensor_test[:10])

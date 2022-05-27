@@ -20,12 +20,16 @@ class Encoder(nn.Module):
         self.encoder = nn.Sequential(
             # input is N, 1, 32, 32
             nn.Conv2d(in_channels=1, out_channels=16, kernel_size=(4, 4), stride=2, padding=1), # N, 16, 16, 16
-            nn.ReLU(),
+            nn.BatchNorm2d(16),
+            nn.LeakyReLU(0.01),
             nn.Conv2d(in_channels=16, out_channels=16, kernel_size=(4, 4), stride=2, padding=1), # N, 16, 8, 8
-            nn.ReLU(),
+            nn.BatchNorm2d(16),
+            nn.LeakyReLU(0.01),
             nn.Conv2d(in_channels=16, out_channels=16, kernel_size=(4, 4), stride=2, padding=1), # N, 16, 4, 4
-            nn.ReLU(),
+            nn.BatchNorm2d(16),
+            nn.LeakyReLU(0.01),
             nn.Conv2d(in_channels=16, out_channels=16, kernel_size=(5, 5), stride=1, padding=1), # N, 16, 2, 2
+            nn.BatchNorm2d(16),
             nn.Flatten(),
             # Linear layer to output the mean and the std of the latent space
         )   
@@ -57,11 +61,14 @@ class Decoder(nn.Module):
             nn.Linear(in_features=2, out_features=64), # 1,16
             Reshape(-1,16,2,2), # 1, 16, 2, 2
             nn.ConvTranspose2d(in_channels=16, out_channels=16, kernel_size=(4, 4), stride=2, padding=1), # N, 16, 4, 4
-            nn.ReLU(True),
+            nn.BatchNorm2d(16),
+            nn.LeakyReLU(0.01),
             nn.ConvTranspose2d(in_channels=16, out_channels=16, kernel_size=(4, 4), stride=2, padding=1), # N, 16, 8, 8
-            nn.ReLU(True),
+            nn.BatchNorm2d(16),
+            nn.LeakyReLU(0.01),
             nn.ConvTranspose2d(in_channels=16, out_channels=16, kernel_size=(4, 4), stride=2, padding=1), # N, 16, 16, 16
-            nn.ReLU(True),
+            nn.BatchNorm2d(16),
+            nn.LeakyReLU(0.01),
             nn.ConvTranspose2d(in_channels=16, out_channels=1, kernel_size=(4, 4), stride=2, padding=1), # N, 1, 32, 32
             nn.Sigmoid(),
         )

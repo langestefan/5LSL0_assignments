@@ -32,25 +32,31 @@ class Encoder(nn.Module):
             nn.BatchNorm2d(16),
             nn.Flatten(),
             # Linear layer to output the mean and the std of the latent space
-        )   
-        self.x_mean = nn.Linear(in_features=64, out_features=2)
-        self.x_std = nn.Linear(in_features=64, out_features=2)
+        ) 
+        self.x_mean = nn.Sequential(
+            nn.Linear(64,2),
+            nn.ReLU()
+        )  
+        self.x_std = nn.Sequential(
+            nn.Linear(64,2),
+            nn.ReLU()
+        ) 
         
-    def sampling (self,x_mean,log_x_std):
+        
+    def sampling (self,x_mean,x_std):
         # sampling from the latent space
         epsilon = torch.randn_like(x_mean)
-        x_std = torch.exp(0.5*log_x_std)
-        x_sample = x_mean + x_std * epsilon
+        x_sample = x_mean + 0.5*x_std * epsilon
         return x_sample
 
     def forward(self, x):
         # forward pass through the encoder
         h = self.encoder(x)
         x_mean = self.x_mean(h)
-        x_log_var = self.x_std(h)
-        x_sample = self.sampling(x_mean, x_log_var)
+        x_std = torch.exp(self.x_std(h))
+        x_sample = self.sampling(x_mean, x_std)
 
-        return x_sample, x_mean, x_log_var
+        return x_sample, x_mean, x_std
     
 # Decoder
 class Decoder(nn.Module):
@@ -70,7 +76,7 @@ class Decoder(nn.Module):
             nn.BatchNorm2d(16),
             nn.LeakyReLU(0.01),
             nn.ConvTranspose2d(in_channels=16, out_channels=1, kernel_size=(4, 4), stride=2, padding=1), # N, 1, 32, 32
-            nn.Sigmoid(),
+            nn.BatchNorm2d(1),
         )
         
     def forward(self, h):

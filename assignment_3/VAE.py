@@ -55,27 +55,15 @@ class Decoder(nn.Module):
         #input is 1,2
         self.decoder = nn.Sequential(
             nn.Linear(in_features=2, out_features=64), # 1,16
-            Reshape(-1,16,2,2), # N, 16, 2, 12
-            # nn.BatchNorm2d(16),
-            # nn.ReLU(True),
-            # nn.Upsample(scale_factor=(1,2), mode='nearest'), # N, 16, 2, 2
-            # nn.ConvTranspose2d(in_channels=16, out_channels=16, kernel_size=(3, 3), stride=1, padding=1), # N, 16, 2, 2
-            # nn.BatchNorm2d(16),
-            # nn.ReLU(True),
-            # nn.Upsample(scale_factor=(2,2), mode='nearest'), # N, 16, 4, 4
-            # nn.ConvTranspose2d(in_channels=16, out_channels=16, kernel_size=(3, 3), stride=1, padding=1), # N, 16, 4, 4
-            # nn.BatchNorm2d(16),
-            # nn.ReLU(True),
-            # nn.Upsample(scale_factor=(2,2), mode='nearest'), # N, 16, 8, 8
-            # nn.ConvTranspose2d(in_channels=16, out_channels=16, kernel_size=(3, 3), stride=1, padding=1), # N, 16, 8, 8
-            # nn.BatchNorm2d(16),
-            # nn.ReLU(True),
-            # nn.Upsample(scale_factor=(2,2), mode='nearest'), # N, 16, 16, 16
-            # nn.ConvTranspose2d(in_channels=16, out_channels=16, kernel_size=(3, 3), stride=1, padding=1), # N, 1, 16, 16
-            # nn.BatchNorm2d(16),
-            # nn.ReLU(True),
-            # nn.Upsample(scale_factor=(2,2), mode='nearest'), # N, 16, 32, 32
-            # nn.Conv2d(in_channels=16, out_channels=1, kernel_size=(3, 3), stride=1, padding=1), # N, 1, 32, 32
+            Reshape(-1,16,2,2), # 1, 16, 2, 2
+            nn.ConvTranspose2d(in_channels=16, out_channels=16, kernel_size=(4, 4), stride=2, padding=1), # N, 16, 4, 4
+            nn.ReLU(True),
+            nn.ConvTranspose2d(in_channels=16, out_channels=16, kernel_size=(4, 4), stride=2, padding=1), # N, 16, 8, 8
+            nn.ReLU(True),
+            nn.ConvTranspose2d(in_channels=16, out_channels=16, kernel_size=(4, 4), stride=2, padding=1), # N, 16, 16, 16
+            nn.ReLU(True),
+            nn.ConvTranspose2d(in_channels=16, out_channels=1, kernel_size=(4, 4), stride=2, padding=1), # N, 1, 32, 32
+            nn.Sigmoid(),
         )
         
     def forward(self, h):
@@ -91,9 +79,9 @@ class VAE(nn.Module):
         self.decoder = Decoder()
         
     def forward(self, x):
-        h = self.encoder(x)
-        r = self.decoder(h)
-        return r, h
+        x_sample, x_mean, x_log_var = self.encoder(x)
+        output_encoder = self.decoder(x_sample)
+        return output_encoder, x_sample, x_mean, x_log_var
 
 
 
@@ -101,6 +89,7 @@ def test():
     # test encoder part 
     # x = torch.randn((1, 1, 32, 32))   
     # model = Encoder()
+
     # x_sample, z_mean, z_log_var = model(x)
     # print ('x_sample:', x_sample)
     # print ('z_mean:', z_mean)
@@ -108,24 +97,24 @@ def test():
 
 
     # test decoder part
-    x = torch.randn((1, 2))
-    model = Decoder()
-    preds= model(x)
-    print(preds.shape)
-    print(x.shape)
+    # x = torch.randn((1, 2))
+    # model = Decoder()
+
+    # preds= model(x)
+    # print(preds.shape)
+    # print(x.shape)
 
 
-    # test AE
-    #x = torch.randn((64, 1, 32, 32))   
-    #model = AE()
+    # test VAE
+    x = torch.randn((64, 1, 32, 32))   
+    model = VAE()
 
-    #preds, latent = model(x)
-    #print('latent:', latent.shape)
-
-
-
-
-
+    output_encoder, x_sample, x_mean, x_log_varpreds = model(x)
+    print ('x_input:', x.shape)
+    print('output_encoder', output_encoder.shape)
+    print('x_sample', x_sample.shape)
+    print('x_mean', x_mean.shape)
+    print('x_log_var', x_log_varpreds.shape)
 
 
 if __name__ == "__main__":

@@ -80,8 +80,8 @@ class VAE(nn.Module):
         
     def forward(self, x):
         x_sample, x_mean, x_log_var = self.encoder(x)
-        output_decoded = self.decoder(x_sample)
-        return output_decoded, x_sample, x_mean, x_log_var
+        output_decoder = self.decoder(x_sample)
+        return output_decoder, x_sample, x_mean, x_log_var
 
 
 
@@ -109,9 +109,9 @@ def test():
     x = torch.randn((64, 1, 32, 32))   
     model = VAE()
 
-    output_decode, x_sample, x_mean, x_log_varpreds = model(x)
+    output_decoder, x_sample, x_mean, x_log_varpreds = model(x)
     print ('x_input:', x.shape)
-    print('output_decode', output_decode.shape)
+    print('output_decode', output_decoder.shape)
     print('x_sample', x_sample.shape)
     print('x_mean', x_mean.shape)
     print('x_log_var', x_log_varpreds.shape)

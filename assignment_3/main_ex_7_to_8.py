@@ -25,6 +25,34 @@ import VAE
 import os
 os.environ["KMP_DUPLICATE_LIB_OK"]="TRUE"
 
+def scatter_plot(latent_tensor, label_tensor, n_points=10000):
+    """
+    Plot function from assignment document
+    :param mnist_points: MNIST feature vectors (digits, points, (x0, y0)) = (10, 20, ndim)
+    """
+    
+    colors = plt.cm.Paired(np.linspace(0, 1, 10)) # color map, 10 digits
+    markers = ['o', 'v', '^', '<', '>', '8', 's', 'p', '*', 'h'] # marker map, 10 digits
+    fig, ax = plt.subplots(figsize=(10, 5))
+
+    for (latent_xy, digit) in zip(latent_tensor[:n_points], label_tensor[:n_points]):
+        color = colors[digit]
+        ax.scatter([item.item(0) for item in latent_xy],
+                   [item.item(1) for item in latent_xy],
+                   color=color, s=20, label=f'digit{digit}', marker=markers[digit])
+
+    ax.grid(True)
+
+    # this trick makes sure all the labels in the legend are unique and only shown once
+    handles, labels = plt.gca().get_legend_handles_labels()
+    by_label = dict(zip(labels, handles))
+    plt.legend(by_label.values(), by_label.keys())
+
+    ax.set_xlabel('h0')
+    ax.set_ylabel('h1')
+    plt.show()
+
+
 def plot_images_exercise_7a(x_data, model_output):
 
     print("shape output: ", np.shape(model_output))
@@ -62,7 +90,7 @@ if __name__ == "__main__":
     model = VAE.VAE()
 
     # # load the trained model 
-    #model = train_ex_7_to_8.load_model(model, "assignment_3/models/VAE_15_epochs.pth")
+    model = train_ex_7_to_8.load_model(model, "assignment_3/models/VAE_35_epochs.pth")
 
     # create the optimizer
     criterion = nn.MSELoss()
@@ -77,29 +105,38 @@ if __name__ == "__main__":
 
     # train the model excercise 7
     
-    model, train_kl_losses, train_reconstruction_loss, train_epoch_losses = train_ex_7_to_8.train_model(model, train_loader, 
-                                                                                                    valid_loader, optimizer, 
-                                                                                                    criterion, n_epochs, device, 
-                                                                                                    write_to_file=True,
-                                                                                                    save_path='assignment_3/models/VAE')
+    # model, train_kl_losses, train_reconstruction_loss, train_epoch_losses = train_ex_7_to_8.train_model(model, train_loader, 
+    #                                                                                                 valid_loader, optimizer, 
+    #                                                                                                 criterion, n_epochs, device, 
+    #                                                                                                 write_to_file=True,
+    #                                                                                                 save_path='assignment_3/models/VAE')
     # #print("kl_losses: ",  train_kl_losses)
     
 
     # excercise 7a: get model output
-    test_losses, output_list, latent_list, label_list = train_ex_7_to_8.test_model(model, criterion, test_loader, device)
+    test_losses, output_list, latent_test, label_test = train_ex_7_to_8.test_model(model, criterion, test_loader, device)
     
 
     #plot the loss
-    train_ex_7_to_8.plot_loss(train_epoch_losses, train_reconstruction_loss, save_path='assignment_3/figures/excercise7a_total_loss.png')
-    train_ex_7_to_8.plot_kl_loss(train_kl_losses, save_path='assignment_3/figures/excercise7a_kl_loss.png')
+    # train_ex_7_to_8.plot_loss(train_epoch_losses, train_reconstruction_loss, save_path='assignment_3/figures/excercise7a_total_loss.png')
+    # train_ex_7_to_8.plot_kl_loss(train_kl_losses, save_path='assignment_3/figures/excercise7a_kl_loss.png')
 
 
     # # concatenate all test outputs into a tensor
     output_tensor_test = torch.cat(output_list, dim=0)
-    # latent_tensor_test = torch.cat(latent_test, dim=0)
-    # label_tensor_test = torch.cat(label_test, dim=0)
+    latent_tensor_test = torch.cat(latent_test, dim=0)
+    label_tensor_test = torch.cat(label_test, dim=0)
+    # print("shape output_tensor_test: ", np.shape(output_tensor_test))
+    # print("shape latent_tensor_test: ", np.shape(latent_tensor_test))
+    # print("shape label_tensor_test: ", np.shape(label_tensor_test))
+    #output_tensor_test = np.shape(output_tensor_test)
+    #latent_tensor_test = np.array(latent_tensor_test)
+    #label_tensor_test = np.shape(label_tensor_test)
 
     # print the first 10 digits of test set (0-9)
-    examples = enumerate(test_loader)
-    _, (x_clean_example, x_noisy_example, labels_example) = next(examples)
-    plot_images_exercise_7a(x_clean_example, output_tensor_test[:10])
+    # examples = enumerate(test_loader)
+    # _, (x_clean_example, x_noisy_example, labels_example) = next(examples)
+    # plot_images_exercise_7a(x_clean_example, output_tensor_test[:10])
+
+    ### excercise 2: latent space ###
+    scatter_plot(latent_tensor_test, label_tensor_test)

@@ -64,6 +64,9 @@ def create_dataloaders(data_loc, batch_size):
     
     # create validation set
     train_set, valid_set = random_split(Noisy_MNIST_train, [50000, 10000])
+
+    # uncommit this for quick check loss function, training and testing code.
+    # train_set, valid_set = random_split(Noisy_MNIST_train, [5000, 55000])
     
     Noisy_MNIST_train_loader =  DataLoader(train_set, batch_size=batch_size, shuffle=True,  drop_last=False)
     Noisy_MNIST_valid_loader =  DataLoader(valid_set, batch_size=batch_size, shuffle=False, drop_last=False)

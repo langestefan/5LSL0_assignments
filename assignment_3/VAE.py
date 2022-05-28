@@ -35,17 +35,17 @@ class Encoder(nn.Module):
         ) 
         self.x_mean = nn.Sequential(
             nn.Linear(64,2),
-            nn.ReLU()
+            #nn.ReLU()
         )  
         self.x_std = nn.Sequential(
             nn.Linear(64,2),
-            nn.ReLU()
+            #nn.ReLU()
         ) 
         
         
     def sampling (self,x_mean,x_std):
         # sampling from the latent space
-        epsilon = torch.randn_like(x_mean)
+        epsilon = torch.randn(x_mean.size(0), x_mean.size(1)).to(x_mean.get_device())
         x_sample = x_mean + 0.5*x_std * epsilon
         return x_sample
 
@@ -77,6 +77,7 @@ class Decoder(nn.Module):
             nn.LeakyReLU(0.01),
             nn.ConvTranspose2d(in_channels=16, out_channels=1, kernel_size=(4, 4), stride=2, padding=1), # N, 1, 32, 32
             nn.BatchNorm2d(1),
+            
         )
         
     def forward(self, h):

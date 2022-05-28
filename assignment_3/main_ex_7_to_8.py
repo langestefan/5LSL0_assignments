@@ -36,10 +36,10 @@ def scatter_plot(latent_tensor, label_tensor, n_points=10000):
     fig, ax = plt.subplots(figsize=(10, 5))
 
     for (latent_xy, digit) in zip(latent_tensor[:n_points], label_tensor[:n_points]):
+        print("latent xy:",latent_xy)
+        print("digit:",digit)
         color = colors[digit]
-        ax.scatter([item.item(0) for item in latent_xy],
-                   [item.item(1) for item in latent_xy],
-                   color=color, s=20, label=f'digit{digit}', marker=markers[digit])
+        ax.scatter( latent_xy[0],latent_xy[1],color=color, s=20, label=f'digit{digit}', marker=markers[digit])
 
     ax.grid(True)
 

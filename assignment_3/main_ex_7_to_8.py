@@ -30,7 +30,7 @@ def scatter_plot(latent_tensor, label_tensor, n_points=10000):
     Plot function from assignment document
     :param mnist_points: MNIST feature vectors (digits, points, (x0, y0)) = (10, 20, ndim)
     """
-    
+
     colors = plt.cm.Paired(np.linspace(0, 1, 10)) # color map, 10 digits
     markers = ['o', 'v', '^', '<', '>', '8', 's', 'p', '*', 'h'] # marker map, 10 digits
     fig, ax = plt.subplots(figsize=(10, 5))
@@ -64,7 +64,7 @@ def plot_images_exercise_7a(x_data, model_output):
         plt.imshow(x_data[i,0,:,:],cmap='gray')
         plt.xticks([])
         plt.yticks([])
-        
+
         plt.subplot(2,10,i+11)
         plt.imshow(model_output[i,0,:,:],cmap='gray')
         plt.xticks([])
@@ -72,7 +72,27 @@ def plot_images_exercise_7a(x_data, model_output):
 
     plt.tight_layout()
     #plt.savefig("exercise_1.png",dpi=300,bbox_inches='tight')
-    plt.show() 
+    plt.show()
+
+def plot_mnist_grid_excercise_5(images, n_img_x, n_img_y, save_path=None):
+    """
+    Plot MNIST images in a grid
+    Args:
+        images: MNIST images (N, 1, 32, 32)
+    """
+    # plot the images in a grid
+    plt.figure(figsize=(12, 12))
+    for j in range(n_img_y):
+        for i in range(n_img_x):
+            img_idx = i + j * n_img_x + 1
+            plt.subplot(n_img_x, n_img_y, img_idx)
+            plt.imshow(images[img_idx-1, 0, :, :], cmap='gray')
+            plt.xticks([])
+            plt.yticks([])
+
+    plt.tight_layout()
+    plt.savefig(f'{save_path}/exercise_7d.png', dpi=300, bbox_inches='tight')
+    plt.show()
 
 if __name__ == "__main__":
     # set torches random seed
@@ -89,7 +109,7 @@ if __name__ == "__main__":
     # # create the autoencoder
     model = VAE.VAE()
 
-    # # load the trained model 
+    # # load the trained model
     model = train_ex_7_to_8.load_model(model, "assignment_3/models/VAE_35_epochs.pth")
 
     # create the optimizer
@@ -104,18 +124,18 @@ if __name__ == "__main__":
     model.to(device)
 
     # train the model excercise 7
-    
-    # model, train_kl_losses, train_reconstruction_loss, train_epoch_losses = train_ex_7_to_8.train_model(model, train_loader, 
-    #                                                                                                 valid_loader, optimizer, 
-    #                                                                                                 criterion, n_epochs, device, 
+
+    # model, train_kl_losses, train_reconstruction_loss, train_epoch_losses = train_ex_7_to_8.train_model(model, train_loader,
+    #                                                                                                 valid_loader, optimizer,
+    #                                                                                                 criterion, n_epochs, device,
     #                                                                                                 write_to_file=True,
     #                                                                                                 save_path='assignment_3/models/VAE')
     # #print("kl_losses: ",  train_kl_losses)
-    
+
 
     # excercise 7a: get model output
-    test_losses, output_list, latent_test, label_test = train_ex_7_to_8.test_model(model, criterion, test_loader, device)
-    
+    #test_losses, output_list, latent_test, label_test = train_ex_7_to_8.test_model(model, criterion, test_loader, device)
+
 
     #plot the loss
     # train_ex_7_to_8.plot_loss(train_epoch_losses, train_reconstruction_loss, save_path='assignment_3/figures/excercise7a_total_loss.png')
@@ -123,9 +143,9 @@ if __name__ == "__main__":
 
 
     # # concatenate all test outputs into a tensor
-    output_tensor_test = torch.cat(output_list, dim=0)
-    latent_tensor_test = torch.cat(latent_test, dim=0)
-    label_tensor_test = torch.cat(label_test, dim=0)
+    # output_tensor_test = torch.cat(output_list, dim=0)
+    # latent_tensor_test = torch.cat(latent_test, dim=0)
+    # label_tensor_test = torch.cat(label_test, dim=0)
     # print("shape output_tensor_test: ", np.shape(output_tensor_test))
     # print("shape latent_tensor_test: ", np.shape(latent_tensor_test))
     # print("shape label_tensor_test: ", np.shape(label_tensor_test))
@@ -138,5 +158,30 @@ if __name__ == "__main__":
     # _, (x_clean_example, x_noisy_example, labels_example) = next(examples)
     # plot_images_exercise_7a(x_clean_example, output_tensor_test[:10])
 
-    ### excercise 2: latent space ###
-    scatter_plot(latent_tensor_test, label_tensor_test)
+    ### excercise 7b: latent space ###
+    #scatter_plot(latent_tensor_test, label_tensor_test)
+
+    ### excercise 7d: Decoder sample generation for VAE ###
+    # x_coords = np.linspace(0.3, 3, 15)
+    # y_coords = np.linspace(0.2, 5.5, 15)[::-1] # the [::-1] reverses the array so that the y-axis is flipped
+    # h0, h1 = np.meshgrid(x_coords, y_coords)
+
+    # # create a grid of latent vectors. Each row is a latent vector (h0, h1) point in the (15, 15) grid
+    # latent_grid = np.stack((h0.flatten(), h1.flatten()), axis=1)
+    # #print(np.shape(latent_grid))
+
+    # # plt.figure(figsize=(12,6))
+    # # plt.plot(latent_grid[:, 0], latent_grid[:, 1], marker='.', color='k', linestyle='none')
+    # # plt.show()
+
+    # # create tensor of size (N,1,2,1) where N = batchsize
+    # latent_grid_tensor = torch.from_numpy(latent_grid).float().to(device)
+    # #print(np.shape(latent_grid_tensor))
+
+    # # get the decoder output
+    # model.eval()
+    # decoder_output = model.decoder(latent_grid_tensor).detach().cpu().numpy()
+    # #print(np.shape(decoder_output))
+
+    # plot_mnist_grid_excercise_5(decoder_output, n_img_x=15, n_img_y=15,
+    #                             save_path='assignment_3/figures')

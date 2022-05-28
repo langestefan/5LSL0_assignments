@@ -51,8 +51,8 @@ if __name__ == "__main__":
     torch.random.manual_seed(0)
     # define parameters
     data_loc = 'assignment_3/data' #change the data location to something that works for you
-    batch_size = 64
-    n_epochs = 30
+    batch_size = 16
+    n_epochs = 5
     learning_rate = 1e-3
 
     # get dataloader
@@ -62,10 +62,10 @@ if __name__ == "__main__":
     model = VAE.VAE()
 
     # # load the trained model 
-    model = train_ex_7_to_8.load_model(model, "assignment_3/models/VAE_10_epochs.pth")
+    #model = train_ex_7_to_8.load_model(model, "assignment_3/models/VAE_15_epochs.pth")
 
     # create the optimizer
-    criterion_ex1 = nn.MSELoss()
+    criterion = nn.MSELoss()
     optimizer = optim.Adam(model.parameters(), learning_rate, weight_decay=1e-5)
 
     # define the device
@@ -75,22 +75,24 @@ if __name__ == "__main__":
     # move model to device
     model.to(device)
 
-    # train the model excercise 1
+    # train the model excercise 7
     
-    model, train_kl_losses, train_reconstruction_losses, train_epoch_losses = train_ex_7_to_8.train_model(model, train_loader, 
+    model, train_kl_losses, train_reconstruction_loss, train_epoch_losses = train_ex_7_to_8.train_model(model, train_loader, 
                                                                                                     valid_loader, optimizer, 
-                                                                                                    criterion_ex1, n_epochs, device, 
+                                                                                                    criterion, n_epochs, device, 
                                                                                                     write_to_file=True,
                                                                                                     save_path='assignment_3/models/VAE')
-    #print("kl_losses: ",  train_kl_losses)
+    # #print("kl_losses: ",  train_kl_losses)
     
 
     # excercise 7a: get model output
-    test_losses, output_list, latent_list, label_list = train_ex_7_to_8.test_model(model, criterion_ex1, test_loader, device)
-    #print("shape of output_list: ", [t.size() for t in output_list])
+    test_losses, output_list, latent_list, label_list = train_ex_7_to_8.test_model(model, criterion, test_loader, device)
+    
 
     #plot the loss
-    #train_ex_7_to_8.plot_loss(train_kl_losses, train_reconstruction_losses, save_path='assignment_3/figures/excercise7a_loss.png')
+    train_ex_7_to_8.plot_loss(train_epoch_losses, train_reconstruction_loss, save_path='assignment_3/figures/excercise7a_total_loss.png')
+    train_ex_7_to_8.plot_kl_loss(train_kl_losses, save_path='assignment_3/figures/excercise7a_kl_loss.png')
+
 
     # # concatenate all test outputs into a tensor
     output_tensor_test = torch.cat(output_list, dim=0)

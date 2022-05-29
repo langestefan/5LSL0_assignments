@@ -1,4 +1,5 @@
 # libraries
+import imp
 from matplotlib import markers
 import torch.optim as optim
 import torch.nn as nn
@@ -14,6 +15,7 @@ import matplotlib.pyplot as plt
 import MNIST_dataloader
 import train_ex_7_to_8
 import VAE
+import denoise_VAE
 
 # nearest neighbor excercise 3
 # from sklearn.neighbors import NearestNeighbors
@@ -139,6 +141,8 @@ if __name__ == "__main__":
 
     # # create the autoencoder
     model = VAE.VAE()
+    # # use this for Exercise 8
+    #model = denoise_VAE.VAE()
 
     # # load the trained model
     model = train_ex_7_to_8.load_model(model, "assignment_3/models/VAE_35_epochs.pth")
@@ -193,9 +197,9 @@ if __name__ == "__main__":
     ### excercise 7b: latent space ###
     # scatter_plot(latent_tensor_test, label_tensor_test)
 
-    # ## excercise 7d: Decoder sample generation for VAE ###
-    # x_coords = np.linspace(-2, 2, 15)
-    # y_coords = np.linspace(-2, 2, 15)[::-1] # the [::-1] reverses the array so that the y-axis is flipped
+    ## excercise 7d: Decoder sample generation for VAE ###
+    # x_coords = np.linspace(-3, 3, 15)
+    # y_coords = np.linspace(-3, 3, 15)[::-1] # the [::-1] reverses the array so that the y-axis is flipped
     # h0, h1 = np.meshgrid(x_coords, y_coords)
 
     # # create a grid of latent vectors. Each row is a latent vector (h0, h1) point in the (15, 15) grid
@@ -219,5 +223,7 @@ if __name__ == "__main__":
     #                             save_path='assignment_3/figures')
 
     ### excercise 8a: Noisy image input to Variational auto-encoder ###
+    #model, x_sample, output_decoder, train_loss, test_loss = train_ex_7_to_8.train(model,optimizer,30,train_loader,test_loader,save_path='assignment_3/models/denoise_VAE')
+
     # plot the first 10 digits of test set (0-9)    
-    plot_images_exercise_8(model,test_loader)
+    #plot_images_exercise_8(model,test_loader)

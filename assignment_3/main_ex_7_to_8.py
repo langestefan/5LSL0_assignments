@@ -29,7 +29,7 @@ os.environ["KMP_DUPLICATE_LIB_OK"]="TRUE"
 
 
 def plot_images_exercise_8(model, test_loader):
-   
+
     examples = enumerate(test_loader)
     _, (x_clean_example, x_noisy_example, labels_example) = next(examples)
 
@@ -37,7 +37,7 @@ def plot_images_exercise_8(model, test_loader):
     output_decoder = output_decoder.data.cpu().numpy()
 
     plt.figure(figsize=(12, 4))
-    for i in range(10): 
+    for i in range(10):
         plt.subplot(3, 10, i+1)
         plt.imshow(x_noisy_example[i, 0, :, :], cmap='gray')
         plt.xticks([])
@@ -146,7 +146,7 @@ if __name__ == "__main__":
 
     # # load the trained model
     model = train_ex_7_to_8.load_model(model, "assignment_3/models/VAE_35_epochs.pth")
-    
+
 
     # create the optimizer
     criterion = nn.MSELoss()
@@ -160,14 +160,12 @@ if __name__ == "__main__":
     model.to(device)
 
     # train the model excercise 7
-
-    # model, train_kl_losses, train_reconstruction_loss, train_epoch_losses = train_ex_7_to_8.train_model(model, train_loader,
-    #                                                                                                 valid_loader, optimizer,
-    #                                                                                                 criterion, n_epochs, device,
-    #                                                                                                 write_to_file=True,
-    #                                                                                                 save_path='assignment_3/models/VAE')
-    # print("kl_losses: ",  train_kl_losses)
-    # model, x_sample, output_decoder, train_loss, test_loss = train_ex_7_to_8.train(model,optimizer,30,train_loader,test_loader,save_path='assignment_3/models/VAE')
+    # model, x_sample, output_decoder, train_loss, test_loss = train_ex_7_to_8.train(model,
+    #                                                                                 optimizer,
+    #                                                                                 n_epochs,
+    #                                                                                 train_loader,
+    #                                                                                 test_loader,
+    #                                                                                 save_path='assignment_3/models/VAE')
 
     # excercise 7a: get model output
     # test_losses, output_list, latent_test, label_test = train_ex_7_to_8.test_model(model, criterion, test_loader, device)
@@ -225,5 +223,5 @@ if __name__ == "__main__":
     ### excercise 8a: Noisy image input to Variational auto-encoder ###
     #model, x_sample, output_decoder, train_loss, test_loss = train_ex_7_to_8.train(model,optimizer,30,train_loader,test_loader,save_path='assignment_3/models/denoise_VAE')
 
-    # plot the first 10 digits of test set (0-9)    
+    # plot the first 10 digits of test set (0-9)
     #plot_images_exercise_8(model,test_loader)

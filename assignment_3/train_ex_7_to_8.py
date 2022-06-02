@@ -155,8 +155,7 @@ def plot_kl_loss(kl_losses, save_path):
     plt.savefig(f"{save_path}", dpi=300, bbox_inches='tight')
     plt.show()
 
-
-def train(model,optimizer,epochs,train_loader,test_loader,save_path=None):
+def train_ex7(model,optimizer,epochs,train_loader,test_loader,save_path=None):
     model.train()
     loss_train = 0.0
     loss_test = 0.0
@@ -193,6 +192,53 @@ def train(model,optimizer,epochs,train_loader,test_loader,save_path=None):
                 loss_test += loss.item()
    
             print(f'train_loss = {loss_train/len(train_loader)/1e4}, test_loss = {loss_test/len(test_loader)/1e4}')
+
+        train_loss.append(loss_train/len(train_loader)/1e4)
+        test_loss.append(loss_test/len(test_loader)/1e4)
+        loss_train = 0.0
+        loss_test = 0.0
+
+    torch.save(model.state_dict(), f"{save_path}_{epoch+1}_best.pth")
+
+    return model, x_sample, output_decoder, train_loss, test_loss
+
+def train_ex8(model,optimizer,epochs,train_loader,test_loader,save_path=None):
+    model.train()
+    loss_train = 0.0
+    loss_test = 0.0
+    train_loss = []
+    test_loss = []
+    for epoch in range(epochs):
+        # go over all minibatches
+        for batch_idx,(x_clean, x_noisy, label) in enumerate(tqdm(train_loader)):
+            # fill in how to train your network using only the clean images
+            if torch.cuda.is_available():
+                device = torch.device('cuda:0')
+                x_clean, x_noisy, label = [x.cuda() for x in [x_clean, x_noisy, label]]
+                model.to(device)
+            output_decoder, x_sample, x_mean, x_log_var = model(x_noisy)
+            train_kl_loss = 0.5 * (x_mean**2 + x_log_var - torch.log(x_log_var)- 1).sum()
+            loss = ((output_decoder-x_noisy)**2).sum() + train_kl_loss
+            optimizer.zero_grad()
+            loss.backward()
+            optimizer.step()
+            loss_train += loss.item()
+            # print('train_kl',model.encoder.kl)
+
+        model.eval()
+        with torch.no_grad():
+            for batch_idx,(x_clean, x_noisy, label) in enumerate(tqdm(test_loader)):
+                # fill in how to train your network using only the clean images
+                if torch.cuda.is_available():
+                    device = torch.device('cuda:0')
+                    x_clean, x_noisy, label = [x.cuda() for x in [x_clean, x_noisy, label]]
+                    model.to(device)
+                output_decoder, x_sample, x_mean, x_log_var = model(x_noisy)
+                test_kl_loss = 0.5 * (x_mean**2 + x_log_var - torch.log(x_log_var)- 1).sum()
+                loss = ((output_decoder-x_noisy)**2).sum() + test_kl_loss
+                loss_test += loss.item()
+   
+            print(f'train_loss = {loss_train/len(train_loader)/1e4}, test_loss = {loss_test/len(test_loader)/1e4},epoch = {epoch}')
 
         train_loss.append(loss_train/len(train_loader)/1e4)
         test_loss.append(loss_test/len(test_loader)/1e4)

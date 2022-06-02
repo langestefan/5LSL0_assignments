@@ -5,6 +5,7 @@ import torch.nn as nn
 import numpy as np
 from tqdm import tqdm
 import matplotlib.pyplot as plt
+import time
 
 #import local files
 import denoise_VAE
@@ -85,6 +86,7 @@ optimizer_map = torch.optim.Adam([estimated_latent],lr = learning_rate)
 # optimization
 MAP_losses = []
 model.eval()
+start_time = time.time()
 for i in tqdm(range(no_iterations)):
     optimizer_map.zero_grad()
     output_decoder = model.decoder(estimated_latent)
@@ -92,10 +94,10 @@ for i in tqdm(range(no_iterations)):
     
     loss.backward()
     optimizer_map.step()
-    MAP_losses.append(loss.item()/1e3)
+    MAP_losses.append(loss.item())
     
-    print(f'loss = {loss.item()/1e3}')
-
+    #print(f'loss = {loss.item()}')
+print('Total Training Time: %.2f min' % ((time.time() - start_time)/60))
 model.eval()
 map_out = model.decoder(estimated_latent)
 

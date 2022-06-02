@@ -33,7 +33,7 @@ def plot_images_exercise_8(model, test_loader):
     examples = enumerate(test_loader)
     _, (x_clean_example, x_noisy_example, labels_example) = next(examples)
 
-    output_decoder, x_sample, x_mean, x_log_var  = model(x_clean_example.cuda())
+    output_decoder, x_sample, x_mean, x_log_var  = model(x_noisy_example.cuda())
     output_decoder = output_decoder.data.cpu().numpy()
 
     plt.figure(figsize=(12, 4))
@@ -54,7 +54,7 @@ def plot_images_exercise_8(model, test_loader):
         plt.yticks([])
 
     plt.tight_layout()
-    plt.savefig(f'assignment_3/figures/exercise_8_b.png', dpi=300, bbox_inches='tight')
+    plt.savefig(f'assignment_3/figures/exercise_8_a.png', dpi=300, bbox_inches='tight')
     plt.show()
 
 
@@ -140,12 +140,12 @@ if __name__ == "__main__":
     train_loader, valid_loader, test_loader = MNIST_dataloader.create_dataloaders(data_loc, batch_size)
 
     # # create the autoencoder
-    model = VAE.VAE()
+    #model = VAE.VAE()
     # # use this for Exercise 8
-    #model = denoise_VAE.VAE()
+    model = denoise_VAE.VAE()
 
     # # load the trained model
-    model = train_ex_7_to_8.load_model(model, "assignment_3/models/VAE_35_epochs.pth")
+   # model = train_ex_7_to_8.load_model(model, "assignment_3/models/denoise_VAE_new_30_best.pth")
 
 
     # create the optimizer
@@ -160,7 +160,7 @@ if __name__ == "__main__":
     model.to(device)
 
     # train the model excercise 7
-    # model, x_sample, output_decoder, train_loss, test_loss = train_ex_7_to_8.train(model,
+    # model, x_sample, output_decoder, train_loss, test_loss = train_ex_7_to_8.train_ex7(model,
     #                                                                                 optimizer,
     #                                                                                 n_epochs,
     #                                                                                 train_loader,
@@ -221,7 +221,7 @@ if __name__ == "__main__":
     #                             save_path='assignment_3/figures')
 
     ### excercise 8a: Noisy image input to Variational auto-encoder ###
-    #model, x_sample, output_decoder, train_loss, test_loss = train_ex_7_to_8.train(model,optimizer,30,train_loader,test_loader,save_path='assignment_3/models/denoise_VAE')
+    # model, x_sample, output_decoder, train_loss, test_loss = train_ex_7_to_8.train_ex8(model,optimizer,30,train_loader,test_loader,save_path='assignment_3/models/denoise_VAE_new')
 
     # plot the first 10 digits of test set (0-9)
-    #plot_images_exercise_8(model,test_loader)
+    # plot_images_exercise_8(model,test_loader)

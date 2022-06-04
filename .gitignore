@@ -131,10 +131,12 @@ dmypy.json
 # data
 *.csv
 data
-.tar
+*.tar
+assignment_4/Fast_MRI_Knee/*
 
 # local test code
 local_test.py
 
 # models
 assignment_3/models/*
+

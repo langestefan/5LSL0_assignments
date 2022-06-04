@@ -1,8 +1,11 @@
-from rich import reconfigure
+from multiprocessing import reduction
 import torch
 import matplotlib.pyplot as plt
 import numpy as np
 from tqdm.auto import tqdm as tqdm
+
+# import torch mse_loss
+from torch.nn.functional import mse_loss, binary_cross_entropy
 
 
 
@@ -18,6 +21,31 @@ def load_model(model, filename):
     model.load_state_dict(torch.load(filename))
     return model
 
+
+def compute_final_loss(output_decoder, x_clean, x_mean, x_log_stddev, beta=1e-3):
+    """
+    Computes the final loss.
+    -------
+    output_decoder: torch.Tensor
+        The output of the decoder
+    x_clean: torch.Tensor of shape (batch_size, 1, 32, 32)
+        The clean images
+    x_mean: torch.Tensor
+        The mean of the latent representation
+    x_logvar: torch.Tensor
+        The log variance of the latent representation
+    beta: float
+        The beta value
+    """
+    # MSE reconstruction loss
+    reconstruction_loss = mse_loss(output_decoder, x_clean)
+
+    # compute the KL loss
+    x_var = torch.square(torch.exp(x_log_stddev))
+    kl_loss = -0.5 * torch.sum(1 + 2*x_log_stddev - torch.square(x_mean) - x_var, dim=1)
+
+    # return the average loss over all images in batch
+    return torch.mean(reconstruction_loss + beta*kl_loss)
 
 def test_model(model, criterion, test_loader, device, use_noisy_images=False):
     """ Test the trained model.
@@ -46,10 +74,11 @@ def test_model(model, criterion, test_loader, device, use_noisy_images=False):
             image_batch = x_noisy if use_noisy_images else x_clean
             x_clean = x_clean.to(device)
 
-            output_decoder, x_sample, x_mean, x_log_var = model(x_clean)
-            test_kl_loss = 0.5 * (x_mean**2 + x_log_var - torch.log(x_log_var)- 1).sum()
-            loss = ((output_decoder-x_clean)**2).sum() + test_kl_loss
-            
+            # network output
+            output_decoder, x_sample, x_mean, x_log_stddev = model(x_clean)
+
+            # compute the loss
+            loss = compute_final_loss(output_decoder, x_clean, x_mean, x_log_stddev)
  
             # append latent representation and the output of minibatch to the list
             latent_list.append(x_sample.detach().cpu())
@@ -60,7 +89,7 @@ def test_model(model, criterion, test_loader, device, use_noisy_images=False):
             test_loss += loss.item()
 
         # print the average loss for this epoch
-        test_losses = test_loss / len(test_loader)/1e4
+        test_losses = test_loss / len(test_loader)
 
         print(f"Test loss is {test_losses}.")
         
@@ -156,6 +185,8 @@ def plot_kl_loss(kl_losses, save_path):
     plt.show()
 
 
+
+
 def train(model,optimizer,epochs,train_loader,test_loader,save_path=None):
     model.train()
     loss_train = 0.0
@@ -170,9 +201,16 @@ def train(model,optimizer,epochs,train_loader,test_loader,save_path=None):
                 device = torch.device('cuda:0')
                 x_clean, x_noisy, label = [x.cuda() for x in [x_clean, x_noisy, label]]
                 model.to(device)
-            output_decoder, x_sample, x_mean, x_log_var = model(x_clean)
-            train_kl_loss = 0.5 * (x_mean**2 + x_log_var - torch.log(x_log_var)- 1).sum()
-            loss = ((output_decoder-x_clean)**2).sum() + train_kl_loss
+
+            # network output
+            output_decoder, x_sample, x_mean, x_log_stddev = model(x_clean)
+
+            # compute the loss
+            loss = compute_final_loss(output_decoder, x_clean, x_mean, x_log_stddev)
+
+            # print("test_kl_loss: {0} and reconst_loss: {1} ".format(train_kl_loss, reconst_loss))
+
+            # backprop
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
@@ -180,22 +218,33 @@ def train(model,optimizer,epochs,train_loader,test_loader,save_path=None):
             # print('train_kl',model.encoder.kl)
 
         model.eval()
+
+        # print mean and std of the latent space
+        # print(torch.mean(x_mean), torch.mean(torch.exp(x_log_stddev)))
+
         with torch.no_grad():
             for batch_idx,(x_clean, x_noisy, label) in enumerate(tqdm(test_loader)):
+
                 # fill in how to train your network using only the clean images
                 if torch.cuda.is_available():
                     device = torch.device('cuda:0')
                     x_clean, x_noisy, label = [x.cuda() for x in [x_clean, x_noisy, label]]
                     model.to(device)
-                output_decoder, x_sample, x_mean, x_log_var = model(x_clean)
-                test_kl_loss = 0.5 * (x_mean**2 + x_log_var - torch.log(x_log_var)- 1).sum()
-                loss = ((output_decoder-x_clean)**2).sum() + test_kl_loss
+
+                # network output
+                output_decoder, x_sample, x_mean, x_log_stddev = model(x_clean)
+
+                # compute the loss
+                loss = compute_final_loss(output_decoder, x_clean, x_mean, x_log_stddev)
+
                 loss_test += loss.item()
    
-            print(f'train_loss = {loss_train/len(train_loader)/1e4}, test_loss = {loss_test/len(test_loader)/1e4}')
+            print(f'train_loss = {loss_train/len(train_loader)}, test_loss = {loss_test/len(test_loader)}')
 
-        train_loss.append(loss_train/len(train_loader)/1e4)
-        test_loss.append(loss_test/len(test_loader)/1e4)
+            # print("Mean, variance: ", x_mean, x_log_stddev)
+
+        train_loss.append(loss_train/len(train_loader))
+        test_loss.append(loss_test/len(test_loader))
         loss_train = 0.0
         loss_test = 0.0
 

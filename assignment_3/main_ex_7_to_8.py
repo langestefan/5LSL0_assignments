@@ -1,5 +1,5 @@
 # libraries
-import imp
+
 from matplotlib import markers
 import torch.optim as optim
 import torch.nn as nn
@@ -131,9 +131,9 @@ if __name__ == "__main__":
     # set torches random seed
     torch.random.manual_seed(0)
     # define parameters
-    data_loc = 'assignment_3/data' #change the data location to something that works for you
+    data_loc = 'data' #change the data location to something that works for you
     batch_size = 64
-    n_epochs = 5
+    n_epochs = 35
     learning_rate = 1e-3
 
     # get dataloader
@@ -144,8 +144,8 @@ if __name__ == "__main__":
     # # use this for Exercise 8
     #model = denoise_VAE.VAE()
 
-    # # load the trained model
-    model = train_ex_7_to_8.load_model(model, "assignment_3/models/VAE_35_epochs.pth")
+    # load the trained model
+    model = train_ex_7_to_8.load_model(model, "assignment_3/models/VAE_35_best.pth")
 
 
     # create the optimizer
@@ -168,7 +168,7 @@ if __name__ == "__main__":
     #                                                                                 save_path='assignment_3/models/VAE')
 
     # excercise 7a: get model output
-    # test_losses, output_list, latent_test, label_test = train_ex_7_to_8.test_model(model, criterion, test_loader, device)
+    test_losses, output_list, latent_test, label_test = train_ex_7_to_8.test_model(model, criterion, test_loader, device)
 
 
     # plot the loss
@@ -177,9 +177,9 @@ if __name__ == "__main__":
 
 
     # # concatenate all test outputs into a tensor
-    # output_tensor_test = torch.cat(output_list, dim=0)
-    # latent_tensor_test = torch.cat(latent_test, dim=0)
-    # label_tensor_test = torch.cat(label_test, dim=0)
+    output_tensor_test = torch.cat(output_list, dim=0)
+    latent_tensor_test = torch.cat(latent_test, dim=0)
+    label_tensor_test = torch.cat(label_test, dim=0)
     # print("shape output_tensor_test: ", np.shape(output_tensor_test))
     # print("shape latent_tensor_test: ", np.shape(latent_tensor_test))
     # print("shape label_tensor_test: ", np.shape(label_tensor_test))
@@ -188,29 +188,29 @@ if __name__ == "__main__":
     # label_tensor_test = np.shape(label_tensor_test)
 
     # print the first 10 digits of test set (0-9)
-    # examples = enumerate(test_loader)
-    # _, (x_clean_example, x_noisy_example, labels_example) = next(examples)
-    # plot_images_exercise_7a(x_clean_example, output_tensor_test[:10])
+    examples = enumerate(test_loader)
+    _, (x_clean_example, x_noisy_example, labels_example) = next(examples)
+    plot_images_exercise_7a(x_clean_example, output_tensor_test[:10])
 
-    ### excercise 7b: latent space ###
-    # scatter_plot(latent_tensor_test, label_tensor_test)
+    ## excercise 7b: latent space ###
+    scatter_plot(latent_tensor_test, label_tensor_test)
 
-    ## excercise 7d: Decoder sample generation for VAE ###
-    # x_coords = np.linspace(-3, 3, 15)
-    # y_coords = np.linspace(-3, 3, 15)[::-1] # the [::-1] reverses the array so that the y-axis is flipped
-    # h0, h1 = np.meshgrid(x_coords, y_coords)
+    # excercise 7d: Decoder sample generation for VAE ###
+    x_coords = np.linspace(-3, 3, 15)
+    y_coords = np.linspace(-3, 3, 15)[::-1] # the [::-1] reverses the array so that the y-axis is flipped
+    h0, h1 = np.meshgrid(x_coords, y_coords)
 
-    # # create a grid of latent vectors. Each row is a latent vector (h0, h1) point in the (15, 15) grid
-    # latent_grid = np.stack((h0.flatten(), h1.flatten()), axis=1)
-    # #print(np.shape(latent_grid))
+    # create a grid of latent vectors. Each row is a latent vector (h0, h1) point in the (15, 15) grid
+    latent_grid = np.stack((h0.flatten(), h1.flatten()), axis=1)
+    #print(np.shape(latent_grid))
 
-    # # plt.figure(figsize=(12,6))
-    # # plt.plot(latent_grid[:, 0], latent_grid[:, 1], marker='.', color='k', linestyle='none')
-    # # plt.show()
+    # plt.figure(figsize=(12,6))
+    # plt.plot(latent_grid[:, 0], latent_grid[:, 1], marker='.', color='k', linestyle='none')
+    # plt.show()
 
-    # # create tensor of size (N,1,2,1) where N = batchsize
-    # latent_grid_tensor = torch.from_numpy(latent_grid).float().to(device)
-    # #print(np.shape(latent_grid_tensor))
+    # create tensor of size (N,1,2,1) where N = batchsize
+    latent_grid_tensor = torch.from_numpy(latent_grid).float().to(device)
+    #print(np.shape(latent_grid_tensor))
 
     # # get the decoder output
     # model.eval()

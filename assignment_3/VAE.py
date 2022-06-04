@@ -15,47 +15,69 @@ class Encoder(nn.Module):
     def __init__(self):
         super(Encoder,self).__init__()
         # create layers here
-        self.encoder = nn.Sequential(
+        self.conv = nn.Sequential(
             # input is N, 1, 32, 32
             nn.Conv2d(in_channels=1, out_channels=16, kernel_size=(4, 4), stride=2, padding=1), # N, 16, 16, 16
             nn.BatchNorm2d(16),
-            nn.LeakyReLU(0.01),
+            nn.ReLU(),
             nn.Conv2d(in_channels=16, out_channels=16, kernel_size=(4, 4), stride=2, padding=1), # N, 16, 8, 8
             nn.BatchNorm2d(16),
-            nn.LeakyReLU(0.01),
+            nn.ReLU(),
             nn.Conv2d(in_channels=16, out_channels=16, kernel_size=(4, 4), stride=2, padding=1), # N, 16, 4, 4
             nn.BatchNorm2d(16),
-            nn.LeakyReLU(0.01),
+            nn.ReLU(),
             nn.Conv2d(in_channels=16, out_channels=16, kernel_size=(5, 5), stride=1, padding=1), # N, 16, 2, 2
             nn.BatchNorm2d(16),
-            nn.Flatten(),
+            nn.Flatten()
             # Linear layer to output the mean and the std of the latent space
         ) 
+
+        # mean of latent distribution
         self.x_mean = nn.Sequential(
-            nn.Linear(64,2),
-            #nn.ReLU()
+            nn.Linear(64, 2),
+            # nn.ReLU()
         )  
-        self.x_std = nn.Sequential(
-            nn.Linear(64,2),
-            #nn.ReLU()
+
+        # log variance of latent distribution
+        self.x_log_stddev = nn.Sequential(
+            nn.Linear(64, 2),
+            # nn.ReLU()
         ) 
+
+        # normal distribution
+        self.normal = torch.distributions.Normal(0, 1)
+
+
+    def reparameterize(self, mu, log_stddev):
+        """
+        :param mu: mean from the encoder's latent space
+        :param log_var: log variance from the encoder's latent space
+        """
+        # std = exp(log_var / 2)
+        std = torch.exp(log_stddev + 1e-7) # standard deviation
+
+        # print("mu shape: ", mu.shape)
+
+        # sampling epsilon from the N(0, 1) distribution
+        eps = self.normal.sample(mu.shape).to(mu.device)  # `randn_like` as we need the same size
         
-        
-    def sampling (self,x_mean,x_std):
-        # sampling from the latent space
-        epsilon = torch.randn(x_mean.size(0), x_mean.size(1)).to(x_mean.get_device())
-        x_sample = x_mean + 0.5*x_std * epsilon
-        return x_sample
+        sample = mu + eps*std # sampling
+        return sample        
 
     def forward(self, x):
-        # forward pass through the encoder
-        h = self.encoder(x)
-        x_mean = self.x_mean(h)
-        x_std = torch.exp(self.x_std(h))
-        x_sample = self.sampling(x_mean, x_std)
+        # forward pass through the first part of the encoder
+        hidden = self.conv(x) 
+        
+        # then get the mean and std from the convolutional layer output
+        x_mean = self.x_mean(hidden)
+        x_log_stddev = self.x_log_stddev(hidden)
 
-        return x_sample, x_mean, x_std
+        # get x_sample from the sampling function
+        x_sample = self.reparameterize(x_mean, x_log_stddev)
+
+        return x_sample, x_mean, x_log_stddev
     
+
 # Decoder
 class Decoder(nn.Module):
     def __init__(self):
@@ -66,15 +88,15 @@ class Decoder(nn.Module):
             Reshape(-1,16,2,2), # 1, 16, 2, 2
             nn.ConvTranspose2d(in_channels=16, out_channels=16, kernel_size=(4, 4), stride=2, padding=1), # N, 16, 4, 4
             nn.BatchNorm2d(16),
-            nn.LeakyReLU(0.01),
+            nn.ReLU(),
             nn.ConvTranspose2d(in_channels=16, out_channels=16, kernel_size=(4, 4), stride=2, padding=1), # N, 16, 8, 8
             nn.BatchNorm2d(16),
-            nn.LeakyReLU(0.01),
+            nn.ReLU(),
             nn.ConvTranspose2d(in_channels=16, out_channels=16, kernel_size=(4, 4), stride=2, padding=1), # N, 16, 16, 16
             nn.BatchNorm2d(16),
-            nn.LeakyReLU(0.01),
+            nn.ReLU(),
             nn.ConvTranspose2d(in_channels=16, out_channels=1, kernel_size=(4, 4), stride=2, padding=1), # N, 1, 32, 32
-            nn.BatchNorm2d(1),
+            # nn.BatchNorm2d(1),
             
         )
         
@@ -91,9 +113,9 @@ class VAE(nn.Module):
         self.decoder = Decoder()
         
     def forward(self, x):
-        x_sample, x_mean, x_log_var = self.encoder(x)
+        x_sample, x_mean, x_log_stddev = self.encoder(x)
         output_decoder = self.decoder(x_sample)
-        return output_decoder, x_sample, x_mean, x_log_var
+        return output_decoder, x_sample, x_mean, x_log_stddev
 
 
 

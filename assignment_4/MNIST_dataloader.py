@@ -29,7 +29,7 @@ class Noisy_MNIST(Dataset):
             data = Clean_MNIST.data.unsqueeze(1)
         else:
             data = Clean_MNIST.data.unsqueeze(1)
-            idx = torch.load('test_idx.tar')
+            idx = torch.load('assignment_4/test_idx.tar')
             data[:,:] = data[idx,:]
             
         
@@ -69,7 +69,7 @@ def create_dataloaders(data_loc, batch_size):
 # %% test if the dataloaders work
 if __name__ == "__main__":
     # define parameters
-    data_loc = 'D://5LSL0-Datasets' #change the datalocation to something that works for you
+    data_loc = 'assignment_4/data' #change the datalocation to something that works for you
     batch_size = 64
     
     # get dataloader
@@ -94,5 +94,5 @@ if __name__ == "__main__":
         plt.yticks([])
     
     plt.tight_layout()
-    plt.savefig("data_examples.png",dpi=300,bbox_inches='tight')
+    # plt.savefig("data_examples.png",dpi=300,bbox_inches='tight')
     plt.show()

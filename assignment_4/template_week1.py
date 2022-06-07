@@ -111,7 +111,7 @@ if __name__ == "__main__":
     batch_size = 64
     mu = 50
     shrinkage = 0
-    K = 10
+    K = 1
 
     # get dataloader
     train_loader, test_loader = MNIST_dataloader.create_dataloaders(data_loc, batch_size)
@@ -122,16 +122,27 @@ if __name__ == "__main__":
   
     #start timer
     start_time = time.time()
+    # exercise 1 a
+    #x_ista = ISTA(mu,shrinkage,K,x_noisy_test)
 
+    # exercise 1 c
+    # ISTA_mse_losses = 0
+    # loss = 0
+    # for batch_idx,(x_clean, x_noisy, label) in enumerate(tqdm(test_loader)):
+        
+    #     x_ista = ISTA(mu,shrinkage,K,x_noisy)
+    #     loss = torch.nn.functional.mse_loss(x_ista,x_noisy)
+    #     loss = np.array(loss)
+    #     ISTA_mse_losses += loss
+    #     print ("loss:",loss)
+    #     print ("mse_loss:",ISTA_mse_losses)
+   
+    # print(f'test_loss = {ISTA_mse_losses/len(test_loader)}') # ISTA_mse_loss = 1.0228046873572525
 
-    # currently only take 1 image for ISTA
-    # This is becasue I got problem for stack all the results together
-    
-    x_ista = ISTA(mu,shrinkage,K,x_noisy_test)
 
     print('Total Training Time: %.2f min' % ((time.time() - start_time)/60))
-
-    plot_examples(x_clean_test, x_noisy_test, x_ista)
+    # exercise 1 b
+    #plot_examples(x_clean_test, x_noisy_test, x_ista)
  
 
    

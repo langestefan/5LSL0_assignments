@@ -24,6 +24,41 @@ import MNIST_dataloader
 # x_noisy_example = x_noisy_test[0:10,:,:,:]
 # labels_example = labels_test[0:10]
 
+def plot_examples(clean_images, noisy_images, ista_output, num_examples=10):
+    """
+    Plots some examples from the dataloader.
+    -------
+    noisy_images: torch.Tensor
+        The noisy images
+    clean_images: torch.Tensor
+        The clean images
+    num_examples : int
+        Number of examples to plot.
+    """
+
+    # show the examples in a plot
+    plt.figure(figsize=(12, 3))
+
+    for i in range(num_examples):
+        plt.subplot(3, num_examples, i+1)
+        plt.imshow(noisy_images[i, 0, :, :], cmap='gray')
+        plt.xticks([])
+        plt.yticks([])
+        
+        plt.subplot(3, num_examples, i + num_examples + 1)
+        plt.imshow(ista_output[i, 0, :, :], cmap='gray')
+        plt.xticks([])
+        plt.yticks([])
+        
+        plt.subplot(3, num_examples, i + 2*num_examples + 1)
+        plt.imshow(clean_images[i, 0, :, :], cmap='gray')
+        plt.xticks([])
+        plt.yticks([])
+    
+    plt.tight_layout()
+    #plt.savefig("assignment_4/figures/exercise_1_b.png", dpi=300, bbox_inches='tight')
+    plt.show()
+
 # %% ISTA
 def softthreshold(x,shrinkage):
     # x: torch.Size([1, 32, 32])
@@ -41,16 +76,33 @@ def softthreshold(x,shrinkage):
 
 def ISTA(mu,shrinkage,K,y):
 
-    x_new = y[0,:,:]
-    x_old = y[0,:,:]
     A = np.identity(32)
     I = np.identity(32)
 
     for i in tqdm(range(K)):
-        x_old = x_new        
-        x_ista = mu*np.dot(A,x_old) + (I-mu*A*A.T)
-        x_new = softthreshold(x_ista,shrinkage) 
-    return x_new
+
+        if i == 0:
+            y = y
+        else:
+            y = x_out
+        image_list = []
+        for z in range(len(y)):            
+            x_old = y[z,0,:,:]
+            x_ista = mu*np.dot(A,x_old) + (I-mu*A*A.T)
+            x_new = softthreshold(x_ista,shrinkage) 
+            image_list.append(x_new)
+           
+        # convert to array
+        x_out = np.array(image_list)
+        
+        # convert to tensor
+        x_out = torch.from_numpy(x_out).float()
+        x_out = x_out.unsqueeze(1)
+
+        #print("x_out:",np.shape(x_out))
+
+
+    return x_out
 
 
 if __name__ == "__main__":
@@ -60,9 +112,9 @@ if __name__ == "__main__":
     # define parameters
     data_loc = 'assignment_4/data' #change the data location to something that works for you
     batch_size = 64
-    mu = 1.4
-    shrinkage = 0.1
-    K = 20
+    mu = 10
+    shrinkage = 0.001
+    K = 3
 
     # get dataloader
     train_loader, test_loader = MNIST_dataloader.create_dataloaders(data_loc, batch_size)
@@ -74,16 +126,15 @@ if __name__ == "__main__":
     #start timer
     start_time = time.time()
 
+
     # currently only take 1 image for ISTA
     # This is becasue I got problem for stack all the results together
-    x_ista = ISTA(mu,shrinkage,K,x_noisy_test[10])
-    plt.subplot(1,2,1)
-    plt.imshow(x_ista,cmap='gray')
-    plt.subplot(1,2,2)
-    plt.imshow(x_noisy_test[0,:,:],cmap='gray')
-    plt.show()
-  
+    
+    x_ista = ISTA(mu,shrinkage,K,x_noisy_test)
+
     print('Total Training Time: %.2f min' % ((time.time() - start_time)/60))
+
+    plot_examples(x_clean_test, x_noisy_test, x_ista)
  
 
    

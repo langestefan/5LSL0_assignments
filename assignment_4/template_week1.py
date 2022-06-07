@@ -56,7 +56,7 @@ def plot_examples(clean_images, noisy_images, ista_output, num_examples=10):
         plt.yticks([])
     
     plt.tight_layout()
-    #plt.savefig("assignment_4/figures/exercise_1_b.png", dpi=300, bbox_inches='tight')
+    plt.savefig("assignment_4/figures/exercise_1_b.png", dpi=300, bbox_inches='tight')
     plt.show()
 
 # %% ISTA
@@ -112,9 +112,9 @@ if __name__ == "__main__":
     # define parameters
     data_loc = 'assignment_4/data' #change the data location to something that works for you
     batch_size = 64
-    mu = 10
-    shrinkage = 0.001
-    K = 3
+    mu = 1.5
+    shrinkage = 0.1
+    K = 50
 
     # get dataloader
     train_loader, test_loader = MNIST_dataloader.create_dataloaders(data_loc, batch_size)

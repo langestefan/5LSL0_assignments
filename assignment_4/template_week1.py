@@ -56,7 +56,7 @@ def plot_examples(clean_images, noisy_images, ista_output, num_examples=10):
         plt.yticks([])
     
     plt.tight_layout()
-    plt.savefig("assignment_4/figures/exercise_1_b.png", dpi=300, bbox_inches='tight')
+    #plt.savefig("assignment_4/figures/exercise_1_b.png", dpi=300, bbox_inches='tight')
     plt.show()
 
 # %% ISTA
@@ -82,13 +82,13 @@ def ISTA(mu,shrinkage,K,y):
     for i in tqdm(range(K)):
 
         if i == 0:
-            y = y
+            input = y
         else:
-            y = x_out
+            input = x_out
         image_list = []
-        for z in range(len(y)):            
-            x_old = y[z,0,:,:]
-            x_ista = mu*np.dot(A,x_old) + (I-mu*A*A.T)
+        for z in range(len(input)):            
+            x_old = input[z,0,:,:]
+            x_ista = mu*np.dot(A,y[z,0,:,:]) + np.dot((I-mu*A*A.T),x_old)
             x_new = softthreshold(x_ista,shrinkage) 
             image_list.append(x_new)
            
@@ -98,9 +98,6 @@ def ISTA(mu,shrinkage,K,y):
         # convert to tensor
         x_out = torch.from_numpy(x_out).float()
         x_out = x_out.unsqueeze(1)
-
-        #print("x_out:",np.shape(x_out))
-
 
     return x_out
 
@@ -112,9 +109,9 @@ if __name__ == "__main__":
     # define parameters
     data_loc = 'assignment_4/data' #change the data location to something that works for you
     batch_size = 64
-    mu = 1.5
-    shrinkage = 0.1
-    K = 50
+    mu = 50
+    shrinkage = 0
+    K = 10
 
     # get dataloader
     train_loader, test_loader = MNIST_dataloader.create_dataloaders(data_loc, batch_size)

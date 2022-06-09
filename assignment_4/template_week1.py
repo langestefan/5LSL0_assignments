@@ -119,14 +119,8 @@ class CNN_ex2(nn.Module):
 
 def smoother_counter(x,shrinkage_ex2):
     # x: torch.Size([64, 1, 32, 32])
-    x_smooth = x
+    x_smooth =  x + 0.5 * ((torch.sqrt(((x - shrinkage_ex2)**2) + 1))-(torch.sqrt(((x + shrinkage_ex2)**2) + 1)))
     
-    # compare each pixels in x with shrinkage value
-    for z in range(len(x)):
-        for i in range(32):
-            for j in range(32):
-                x_smooth[z,0,i,j] = x[z,0,i,j] + 0.5 * ((torch.sqrt(((x[z,0,i,j] - shrinkage_ex2)**2) + 1))-(torch.sqrt(((x[z,0,i,j] + shrinkage_ex2)**2) + 1)))
-
     return x_smooth
 
 def LISTA(model,unfolded_iterations,shrinkage_ex2,x_noisy):
@@ -151,10 +145,10 @@ if __name__ == "__main__":
     batch_size = 64
     mu = 0.9
     shrinkage = 0.1
-    K = 2
+    K = 1
     # parameters for ex2
     shrinkage_ex2 = [0.1,0.2,0.3]
-    n_epochs = 1
+    n_epochs = 10
     learning_rate = 0.1
     unfolded_iterations = 3
     # create the optimizer
@@ -179,7 +173,7 @@ if __name__ == "__main__":
     # #start timer
     # start_time = time.time()
     # #exercise 1 a
-    # x_ista = ISTA(mu,shrinkage,K,x_noisy_test)
+    # #x_ista = ISTA(mu,shrinkage,K,x_noisy_test)
 
     # #exercise 1 c
     # ISTA_mse_losses = 0
@@ -187,13 +181,16 @@ if __name__ == "__main__":
     # for batch_idx,(x_clean, x_noisy, label) in enumerate(tqdm(test_loader)):
         
     #     x_ista = ISTA(mu,shrinkage,K,x_noisy)
-    #     loss = torch.nn.functional.mse_loss(x_ista,x_noisy)
+    #     loss = torch.nn.functional.mse_loss(x_ista,x_clean)
     #     loss = np.array(loss)
     #     ISTA_mse_losses += loss
     #     print ("loss:",loss)
     #     print ("mse_loss:",ISTA_mse_losses)
    
-    # print(f'test_loss = {ISTA_mse_losses/len(test_loader)}') # ISTA_mse_loss = 1.0228046873572525
+    # print(f'test_loss = {ISTA_mse_losses/len(test_loader)}') 
+    # # ISTA_mse_loss_nosiy = 1.0228
+    # # ISTA_mse_loss_clean = 0.8412
+
 
     # print('Total Training Time: %.2f min' % ((time.time() - start_time)/60))
 
@@ -202,7 +199,7 @@ if __name__ == "__main__":
 
     # #exercise 2a
 
-    # #start timer
+    #start timer
     start_time = time.time()
 
     model.train()
@@ -211,11 +208,11 @@ if __name__ == "__main__":
     for epoch in range(n_epochs):
         # go over all minibatches
         for batch_idx,(x_clean, x_noisy, label) in enumerate(tqdm(train_loader)):
-            # # fill in how to train your network using only the clean images
-            # if torch.cuda.is_available():
-            #     device = torch.device('cuda:0')
-            #     x_clean, x_noisy, label = [x.cuda() for x in [x_clean, x_noisy, label]]
-            #     model.to(device)
+            # fill in how to train your network using only the clean images
+            if torch.cuda.is_available():
+                device = torch.device('cuda:0')
+                x_clean, x_noisy, label = [x.cuda() for x in [x_clean, x_noisy, label]]
+                model.to(device)
 
             x_out = LISTA(model,unfolded_iterations,shrinkage_ex2,x_noisy)
             loss = criterion(x_clean, x_out)

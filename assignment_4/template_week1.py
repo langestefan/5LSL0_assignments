@@ -123,11 +123,6 @@ class LISTA(nn.Module):
         nn.Conv2d(in_channels=1, out_channels=1, kernel_size=(3, 3), stride=1, padding=1), # N, 1, 32, 32
         nn.BatchNorm2d(1)       
         )
-        self.conv2 = nn.Sequential(
-        # input is N, 1, 32, 32
-        nn.ConvTranspose2d(in_channels=1, out_channels=1, kernel_size=(3, 3), stride=1, padding=1), # N, 1, 32, 32
-        #nn.BatchNorm2d(1)       
-        )
     
     def smoother_counter(self, x_out1, shrinkage_ex2):
         # x_out1: torch.Size([64, 1, 32, 32])
@@ -137,7 +132,8 @@ class LISTA(nn.Module):
         
     def forward(self,x):
         unfolded_iterations = 3
-        shrinkage_ex2 = [1,2,3]
+        # list : shrinkage_ex2 = [lambda1, lambda2, lambda3], currently lambda1 = 0.1 gives best results
+        shrinkage_ex2 = [0.1,0.1,0.1]
         for i in range(unfolded_iterations):
             if i == 0:
                 iter_out = 0
@@ -146,7 +142,7 @@ class LISTA(nn.Module):
 
             x_out1 = self.conv1(x) + iter_out      
             x_out2 = self.smoother_counter(x_out1,shrinkage_ex2[i])
-            x_out3 = self.conv2(x_out2)
+            x_out3 = self.conv1(x_out2)
       
         return x_out2
 
@@ -173,7 +169,7 @@ def train_model(model, train_loader, n_epochs, optimizer, criterion):
                 model.to(device)
 
             x_out = model(x_noisy)
-            loss = criterion(x_clean, x_out)
+            loss = criterion(x_out, x_clean)
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
@@ -206,7 +202,7 @@ if __name__ == "__main__":
     K = 1
 
     # parameters for ex2
-    n_epochs = 2
+    n_epochs = 5
     learning_rate = 0.1
 
     model = LISTA()
@@ -220,14 +216,12 @@ if __name__ == "__main__":
     x_clean_test  = test_loader.dataset.Clean_Images[0:10]
     # take first 10 images from noisy test data set: torch.Size([10, 1, 32, 32])
     x_noisy_test  = test_loader.dataset.Noisy_Images[0:10]
-    
 
 
-
-
+    # #exercise 1 a
     # #start timer
     # start_time = time.time()
-    # #exercise 1 a
+   
     # #x_ista = ISTA(mu,shrinkage,K,x_noisy_test)
 
     # #exercise 1 c
@@ -258,10 +252,11 @@ if __name__ == "__main__":
     # start timer
     start_time = time.time()
 
-    #model, train_loss = train_model(model, train_loader, n_epochs, optimizer, criterion)
+    # model, train_loss = train_model(model, train_loader, n_epochs, optimizer, criterion)
 
     # load the trained model
-    model = load_model(model, "assignment_4/models/10.pth")
+    model = load_model(model, "assignment_4/models/5.pth")
+
     test_model(model, x_noisy_test)
 
     print('Total Training Time: %.2f min' % ((time.time() - start_time)/60))

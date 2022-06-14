@@ -38,6 +38,32 @@ def load_model(model, filename):
     model.load_state_dict(torch.load(filename))
     return model
 
+def plot_train_loss(losses, save_path):
+    """
+    Plots the loss.
+    -------
+    train_losses: list
+        The training loss
+    valid_losses: list
+        The validation loss
+    """
+    num_epochs = len(losses)
+
+    # plot the loss
+    fig, ax = plt.subplots(figsize=(12, 6))
+    ax.plot(losses, label='loss')
+    ax.set_xlim(0, num_epochs-1)
+
+    # axis labels
+    plt.xlabel('Epoch[n]', fontsize="x-large")
+    plt.ylabel('Loss', fontsize="x-large")
+    plt.legend(fontsize="x-large")
+    plt.grid(True)
+    plt.xticks(np.arange(0, num_epochs, 2))
+    plt.savefig(f"{save_path}", dpi=300, bbox_inches='tight')
+    plt.show()
+
+
 def plot_examples(clean_images, noisy_images, ista_output, num_examples=10):
     """
     Plots some examples from the dataloader.
@@ -185,13 +211,25 @@ def train_model(model, train_loader, n_epochs, optimizer, criterion):
 
     return model, train_losses
 
-def test_model(model, x_noisy_test):
+def test_ex2b(model, x_noisy_test):
 
     model.eval()
     x_out = model(x_noisy_test)
     x_out = x_out.detach().numpy()
     plot_examples(x_clean_test, x_noisy_test, x_out)
 
+def test_ex2c(model, criterion, test_loader):
+
+    model.eval()
+    LISTA_mse_losses = 0
+    loss = 0
+    for batch_idx,(x_clean, x_noisy, label) in enumerate(tqdm(test_loader)):
+        
+        x_ista = model(x_noisy)
+        loss = criterion(x_ista,x_clean)
+        LISTA_mse_losses += loss.item()
+   
+    print(f'test_loss = {LISTA_mse_losses/len(test_loader)}') 
 
 if __name__ == "__main__":
     # set torches random seed
@@ -205,8 +243,8 @@ if __name__ == "__main__":
     K = 1
 
     # parameters for ex2
-    n_epochs = 5
-    learning_rate = 0.1
+    n_epochs = 15
+    learning_rate = 0.0003
 
     model = LISTA()
  
@@ -255,12 +293,18 @@ if __name__ == "__main__":
     # start timer
     start_time = time.time()
 
-    model, train_loss = train_model(model, train_loader, n_epochs, optimizer, criterion)
+    #model, train_loss = train_model(model, train_loader, n_epochs, optimizer, criterion)
+
+    #plot_train_loss(train_loss, save_path='assignment_4/figures/excercise2a_loss_10epoch.png')
 
     # load the trained model
-    #model = load_model(model, "assignment_4/models/5.pth")
+    model = load_model(model, "assignment_4/models/15.pth")
 
-    #test_model(model, x_noisy_test)
+    ##exercise 2b
+    #test_ex2b(model, x_noisy_test)
+
+    ##exercise 2c
+    test_ex2c(model, criterion, test_loader)
 
     print('Total Training Time: %.2f min' % ((time.time() - start_time)/60))
 

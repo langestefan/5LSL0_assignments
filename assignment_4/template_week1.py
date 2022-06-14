@@ -161,6 +161,8 @@ def train_model(model, train_loader, n_epochs, optimizer, criterion):
     train_loss = []
     for epoch in range(n_epochs):
         # go over all minibatches
+        loss_train = 0.0
+        loss = 0.0
         for batch_idx,(x_clean, x_noisy, label) in enumerate(tqdm(train_loader)):
            
             if torch.cuda.is_available():
@@ -174,9 +176,11 @@ def train_model(model, train_loader, n_epochs, optimizer, criterion):
             loss.backward()
             optimizer.step()
             loss_train += loss.item()
+            
 
         train_loss.append(loss_train/len(train_loader))
         print(f'Epoch {epoch+1}/{n_epochs} Loss: {loss_train/len(train_loader)}')
+ 
     # save the trained model
     torch.save(model.state_dict(), f"assignment_4/models/{epoch+1}.pth")
 
@@ -252,12 +256,12 @@ if __name__ == "__main__":
     # start timer
     start_time = time.time()
 
-    # model, train_loss = train_model(model, train_loader, n_epochs, optimizer, criterion)
+    model, train_loss = train_model(model, train_loader, n_epochs, optimizer, criterion)
 
     # load the trained model
-    model = load_model(model, "assignment_4/models/5.pth")
+    #model = load_model(model, "assignment_4/models/5.pth")
 
-    test_model(model, x_noisy_test)
+    #test_model(model, x_noisy_test)
 
     print('Total Training Time: %.2f min' % ((time.time() - start_time)/60))
 

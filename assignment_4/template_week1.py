@@ -157,8 +157,7 @@ def train_model(model, train_loader, n_epochs, optimizer, criterion):
         Model: Trained model.
     """
     model.train()
-    loss_train = 0.0
-    train_loss = []
+    train_losses = []
     for epoch in range(n_epochs):
         # go over all minibatches
         loss_train = 0.0
@@ -178,13 +177,13 @@ def train_model(model, train_loader, n_epochs, optimizer, criterion):
             loss_train += loss.item()
             
 
-        train_loss.append(loss_train/len(train_loader))
+        train_losses.append(loss_train/len(train_loader))
         print(f'Epoch {epoch+1}/{n_epochs} Loss: {loss_train/len(train_loader)}')
  
     # save the trained model
     torch.save(model.state_dict(), f"assignment_4/models/{epoch+1}.pth")
 
-    return model, train_loss
+    return model, train_losses
 
 def test_model(model, x_noisy_test):
 

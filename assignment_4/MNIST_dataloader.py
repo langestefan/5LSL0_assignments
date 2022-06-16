@@ -7,6 +7,9 @@ from torch.utils.data import Dataset,DataLoader
 # pyplot
 import matplotlib.pyplot as plt
 
+import os
+os.environ["KMP_DUPLICATE_LIB_OK"]="TRUE"
+
 # %% Noisy MNIST dataset
 class Noisy_MNIST(Dataset):
     # initialization of the dataset
@@ -29,8 +32,9 @@ class Noisy_MNIST(Dataset):
             data = Clean_MNIST.data.unsqueeze(1)
         else:
             data = Clean_MNIST.data.unsqueeze(1)
-            idx = torch.load('assignment_4/test_idx.tar')
+            idx = torch.load('data/test_idx.tar')
             data[:,:] = data[idx,:]
+            Clean_MNIST.targets[:] = Clean_MNIST.targets[idx]  # also apply new idx to labels    
             
         
         # reshape and normalize
@@ -69,7 +73,7 @@ def create_dataloaders(data_loc, batch_size):
 # %% test if the dataloaders work
 if __name__ == "__main__":
     # define parameters
-    data_loc = 'assignment_4/data' #change the datalocation to something that works for you
+    data_loc = '../data' #change the datalocation to something that works for you
     batch_size = 64
     
     # get dataloader
@@ -96,3 +100,4 @@ if __name__ == "__main__":
     plt.tight_layout()
     # plt.savefig("data_examples.png",dpi=300,bbox_inches='tight')
     plt.show()
+# %%

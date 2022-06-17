@@ -51,7 +51,7 @@ def create_dataloaders(data_loc, batch_size):
 # %% test if the dataloaders work
 if __name__ == "__main__":
     # define parameters
-    data_loc = 'D://5LSL0-Datasets//Fast_MRI_Knee' #change the datalocation to something that works for you
+    data_loc = 'assignment_4/Fast_MRI_Knee/' #change the datalocation to something that works for you
     batch_size = 2
     
     train_loader, test_loader = create_dataloaders(data_loc, batch_size)
@@ -82,5 +82,5 @@ if __name__ == "__main__":
     plt.yticks([])
     plt.title('ground truth')
     
-    plt.savefig("example.png",dpi=300,bbox_inches='tight')
+    #plt.savefig("example.png",dpi=300,bbox_inches='tight')
     plt.close()

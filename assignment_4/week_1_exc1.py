@@ -85,7 +85,7 @@ def ISTA(mu, shrinkage, K, y):
     image_list = []
 
     for idx, y in tqdm(enumerate(input_images)):
-        print("shape of y: ", y.shape)
+        # print("shape of y: ", y.shape)
 
         for i in range(K):
             # gradient step, z = f1(x_k)
@@ -117,14 +117,13 @@ def main():
 
     x_clean_0_to_10 = x_clean_example[:10].squeeze()
     x_noisy_0_to_10 = x_noisy_example[:10].squeeze()
-    labels_0_to_10 = labels_example[:10].squeeze()
 
     print("input size: ", x_noisy_0_to_10.shape)
 
     # ISTA parameters
     mu = 0.9
     shrinkage = 0.1
-    K = 1
+    K = 10
 
     # ISTA
     x_ista = ISTA(mu, shrinkage, K, x_noisy_0_to_10)

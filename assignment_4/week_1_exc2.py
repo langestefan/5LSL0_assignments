@@ -7,6 +7,8 @@ from tqdm import tqdm
 import matplotlib.pyplot as plt
 
 import os
+
+from zmq import device
 os.environ["KMP_DUPLICATE_LIB_OK"]="TRUE"
 import sys
 
@@ -21,6 +23,8 @@ if module_path not in sys.path:
 
 # local imports
 import MNIST_dataloader
+from train import train_model, plot_loss, plot_examples
+
 
 # set torches random seed
 torch.random.manual_seed(0)
@@ -67,54 +71,55 @@ def plot_examples(clean_images, noisy_images, ista_output, num_examples=10):
     #plt.savefig("assignment_4/figures/exercise_1_b.png", dpi=300, bbox_inches='tight')
     plt.show()
 
-def load_model(model, filename):
-    """ Load the trained model.
-    Args:
-        model (Model class): Untrained model to load.
-        filename (str): Name of the file to load the model from.
-    Returns:
-        Model: Model with parameters loaded from file.
-    """
-    model.load_state_dict(torch.load(filename))
-    return model
+# def load_model(model, filename):
+#     """ Load the trained model.
+#     Args:
+#         model (Model class): Untrained model to load.
+#         filename (str): Name of the file to load the model from.
+#     Returns:
+#         Model: Model with parameters loaded from file.
+#     """
+#     model.load_state_dict(torch.load(filename))
+#     return model
 
-def train_model(model, train_loader, n_epochs, optimizer, criterion):
-    """ Train the model.
-    Args:
-        model (Model class): Untrained model to train.
-        train_loader (DataLoader): DataLoader for training data.
-        n_epochs (int): Number of epochs to train for.
-    Returns:
-        Model: Trained model.
-    """
-    model.train()
-    train_losses = []
+# def train_model(model, train_loader, n_epochs, optimizer, criterion, save_model=True):
+#     """ Train the model.
+#     Args:
+#         model (Model class): Untrained model to train.
+#         train_loader (DataLoader): DataLoader for training data.
+#         n_epochs (int): Number of epochs to train for.
+#     Returns:
+#         Model: Trained model.
+#     """
+#     model.train()
+#     train_losses = []
 
-    for epoch in range(n_epochs):
-        # go over all minibatches
-        loss_train = 0.0
-        loss = 0.0
-        for batch_idx, (x_clean, x_noisy, label) in enumerate(tqdm(train_loader)):
+#     for epoch in range(n_epochs):
+#         # go over all minibatches
+#         loss_train = 0.0
+#         loss = 0.0
+#         for batch_idx, (x_clean, x_noisy, label) in enumerate(tqdm(train_loader)):
            
-            if torch.cuda.is_available():
-                device = torch.device('cuda:0')
-                x_clean, x_noisy, label = [x.cuda() for x in [x_clean, x_noisy, label]]
-                model.to(device)
+#             if torch.cuda.is_available():
+#                 device = torch.device('cuda:0')
+#                 x_clean, x_noisy, label = [x.cuda() for x in [x_clean, x_noisy, label]]
+#                 model.to(device)
 
-            x_out = model(x_noisy)
-            loss = criterion(x_out, x_clean)
-            optimizer.zero_grad()
-            loss.backward()
-            optimizer.step()
-            loss_train += loss.item()
+#             x_out = model(x_noisy)
+#             loss = criterion(x_out, x_clean)
+#             optimizer.zero_grad()
+#             loss.backward()
+#             optimizer.step()
+#             loss_train += loss.item()
             
-        train_losses.append(loss_train/len(train_loader))
-        print(f'Epoch {epoch+1}/{n_epochs} Loss: {loss_train/len(train_loader)}')
+#         train_losses.append(loss_train/len(train_loader))
+#         print(f'Epoch {epoch+1}/{n_epochs} Loss: {loss_train/len(train_loader)}')
  
-    # save the trained model
-    torch.save(model.state_dict(), f"assignment_4/models/{epoch+1}.pth")
+#     # save the trained model
+#     if save_model:
+#         torch.save(model.state_dict(), f"assignment_4/models/{epoch+1}.pth")
 
-    return model, train_losses
+#     return model, train_losses
 
 
 class W_2K_1(nn.Module):
@@ -146,6 +151,7 @@ class LISTA(nn.Module):
 
         self.n_unfolded_iter = n_unfolded_iter
         self.shrinkage = nn.Parameter(torch.full((n_unfolded_iter,), lambda_init))
+        # self.shrinkage = nn.Parameter(torch.tensor([2.0, 1.0, 0.0]))
 
         # module lists for the unfolded iterations
         self.weight_2k_1 = nn.ModuleList([W_2K_1() for _ in range(self.n_unfolded_iter)])
@@ -170,7 +176,8 @@ class LISTA(nn.Module):
             # output of the 2k weight matrix
             z = self._shrinkage(y_2k_1 + x_k, lambd=self.shrinkage[i])
             x_k = self.weight_2k[i](z)       
-  
+
+        # print("shrinkage: ", self.shrinkage.data)
         return x_k
 
 def test_ex2b(model, x_noisy_test, x_clean_test):
@@ -206,21 +213,32 @@ def main():
     print("input size: ", x_noisy_0_to_10.shape)
 
     # generate LISTA model
-    model = LISTA(n_unfolded_iter=3, lambda_init=0.5)
+    model = LISTA(n_unfolded_iter=3, lambda_init=2.0)
     print(model)
 
     # train the model
-    n_epochs = 15
-    learning_rate = 1e-3
+    device = torch.device('cuda:0')
+    n_epochs = 20
+    learning_rate = 1e-4
     criterion = nn.MSELoss()
     optimizer = optim.Adam(model.parameters(), lr=learning_rate)
 
-    # model, train_losses = train_model(model, train_loader, n_epochs, optimizer, criterion)
+    model, train_losses, valid_losses = train_model(model, train_loader, test_loader, optimizer, criterion, 
+                                                    n_epochs, device, write_to_file=True, save_path='assignment_4/models/')
+
+
+    # plot the losses for the training and validation
+    plot_loss(train_losses, valid_losses, save_path='assignment_4/figures/' + 'losses_exc2a.png')
 
     # load the trained model
-    model = load_model(model, "assignment_4/models/LISTA_epoch15.pth")
+    # model = load_model(model, "assignment_4/models/LISTA_epoch15_v2.pth")
+
+    # print shrinkage parameters
+    print(model.shrinkage.data)
 
     # exercise 2b
+    # move the model to the cpu
+    model.cpu()
     test_ex2b(model, x_noisy_example, x_clean_example)
 
 

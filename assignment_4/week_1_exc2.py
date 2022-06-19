@@ -71,57 +71,6 @@ def plot_examples(clean_images, noisy_images, ista_output, num_examples=10):
     #plt.savefig("assignment_4/figures/exercise_1_b.png", dpi=300, bbox_inches='tight')
     plt.show()
 
-# def load_model(model, filename):
-#     """ Load the trained model.
-#     Args:
-#         model (Model class): Untrained model to load.
-#         filename (str): Name of the file to load the model from.
-#     Returns:
-#         Model: Model with parameters loaded from file.
-#     """
-#     model.load_state_dict(torch.load(filename))
-#     return model
-
-# def train_model(model, train_loader, n_epochs, optimizer, criterion, save_model=True):
-#     """ Train the model.
-#     Args:
-#         model (Model class): Untrained model to train.
-#         train_loader (DataLoader): DataLoader for training data.
-#         n_epochs (int): Number of epochs to train for.
-#     Returns:
-#         Model: Trained model.
-#     """
-#     model.train()
-#     train_losses = []
-
-#     for epoch in range(n_epochs):
-#         # go over all minibatches
-#         loss_train = 0.0
-#         loss = 0.0
-#         for batch_idx, (x_clean, x_noisy, label) in enumerate(tqdm(train_loader)):
-           
-#             if torch.cuda.is_available():
-#                 device = torch.device('cuda:0')
-#                 x_clean, x_noisy, label = [x.cuda() for x in [x_clean, x_noisy, label]]
-#                 model.to(device)
-
-#             x_out = model(x_noisy)
-#             loss = criterion(x_out, x_clean)
-#             optimizer.zero_grad()
-#             loss.backward()
-#             optimizer.step()
-#             loss_train += loss.item()
-            
-#         train_losses.append(loss_train/len(train_loader))
-#         print(f'Epoch {epoch+1}/{n_epochs} Loss: {loss_train/len(train_loader)}')
- 
-#     # save the trained model
-#     if save_model:
-#         torch.save(model.state_dict(), f"assignment_4/models/{epoch+1}.pth")
-
-#     return model, train_losses
-
-
 class W_2K_1(nn.Module):
     def __init__(self):
         super().__init__()

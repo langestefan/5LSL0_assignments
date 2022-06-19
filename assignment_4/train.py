@@ -135,8 +135,18 @@ def calculate_loss(model, data_loader, criterion, device):
     return loss / len(data_loader)
     # return loss
 
+def test_ex2c(model, criterion, test_loader):
 
-
+    model.eval()
+    LISTA_mse_losses = 0
+    loss = 0
+    for batch_idx,(x_clean, x_noisy, label) in enumerate(tqdm(test_loader)):
+        
+        x_ista = model(x_noisy)
+        loss = criterion(x_ista,x_clean)
+        LISTA_mse_losses += loss.item()
+   
+    print(f'test_loss = {LISTA_mse_losses/len(test_loader)}') 
 
 
 

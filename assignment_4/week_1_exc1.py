@@ -1,5 +1,3 @@
-# %% imports
-# libraries
 from re import X
 import torch
 import numpy as np
@@ -17,6 +15,7 @@ if module_path not in sys.path:
 
 # local imports
 import MNIST_dataloader
+
 
 # set torches random seed
 torch.random.manual_seed(0)
@@ -121,13 +120,18 @@ def main():
     print("input size: ", x_noisy_0_to_10.shape)
 
     # ISTA parameters
-    mu = 0.9
-    shrinkage = 0.1
-    K = 10
+    mu = 1.2
+    shrinkage = 0.6
+    K = 100
 
     # ISTA
     x_ista = ISTA(mu, shrinkage, K, x_noisy_0_to_10)
     print("ista output size: ", x_ista.shape)
+
+    # compute MSE
+    mse = torch.nn.MSELoss()
+    mse_loss = mse(x_ista, x_clean_0_to_10)
+    print("mse loss: ", mse_loss.item())
 
     # plot the results
     plot_examples(x_clean_0_to_10, x_noisy_0_to_10, x_ista)

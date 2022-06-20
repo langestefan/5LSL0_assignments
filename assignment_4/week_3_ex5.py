@@ -4,7 +4,7 @@ import torch.optim as optim
 from Fast_MRI_dataloader import create_dataloaders
 from tqdm import tqdm 
 import matplotlib.pyplot as plt
-from torch.fft import fft2, fftshift, ifft2
+from torch.fft import ifft2
 import numpy as np
 from train import load_model
 
@@ -81,7 +81,7 @@ def calculate_loss(model, data_loader, criterion, device):
         loss += criterion(x_out, gt_unsqueeze).item()
 
     # return the loss
-    return loss / len(data_loader), acc_mri, x_out, gt
+    return loss / len(data_loader)
 
 # train model function
 def train_model(model, train_loader, valid_loader, optimizer, criterion, n_epochs, device, write_to_file=True, save_path=None):
@@ -157,7 +157,7 @@ def train_model(model, train_loader, valid_loader, optimizer, criterion, n_epoch
             train_loss += loss.item()
 
         # calculate validation loss
-        valid_loss, test_acc_mri, test_x_out, test_gt  = calculate_loss(model, valid_loader, criterion, device) # autoencoder 
+        valid_loss = calculate_loss(model, valid_loader, criterion, device) # autoencoder 
 
         # average loss for this epoch = train_loss / n_batches
         train_loss /= len(train_loader)
@@ -174,7 +174,7 @@ def train_model(model, train_loader, valid_loader, optimizer, criterion, n_epoch
         torch.save(model.state_dict(), f"{save_path}_{epoch}_epochs.pth")
 
     # return the trained model
-    return model, train_losses, valid_losses, test_acc_mri, test_x_out, test_gt
+    return model, train_losses, valid_losses
 
 def plot_ex5c(test_acc_mri, test_x_out, test_gt, save_path):
 
@@ -238,18 +238,18 @@ if __name__ == "__main__":
 
     model = CNN_ex5()
 
-    # # train the model
-    # device = torch.device('cuda:0')
-    # n_epochs = 10
-    # learning_rate = 1e-4
-    # criterion = nn.MSELoss()
-    # optimizer = optim.Adam(model.parameters(), lr=learning_rate)
+    # train the model
+    device = torch.device('cuda:0')
+    n_epochs = 10
+    learning_rate = 1e-4
+    criterion = nn.MSELoss()
+    optimizer = optim.Adam(model.parameters(), lr=learning_rate)
 
-    # model, train_losses, test_losses, test_acc_mri, test_x_out, test_gt = train_model(model, train_loader, test_loader, optimizer, criterion, 
-    #                                                 n_epochs, device, write_to_file=True, save_path='assignment_4/models/')
+    model, train_losses, test_losses, test_acc_mri, test_x_out, test_gt = train_model(model, train_loader, test_loader, optimizer, criterion, 
+                                                    n_epochs, device, write_to_file=True, save_path='assignment_4/models/')
     
-    # # # plot the loss for exercise 5b
-    # plot_loss(train_losses, test_losses, 'assignment_4/figures/ex5b_loss.png')
+    # # plot the loss for exercise 5b
+    plot_loss(train_losses, test_losses, 'assignment_4/figures/ex5b_loss.png')
 
     # # exercise 5c
 
@@ -268,6 +268,7 @@ if __name__ == "__main__":
 
     # get reconstructed image from CNN
     test_x_out = model(test_acc_mri)
+    # detach x_out from GPU
     test_x_out = test_x_out.detach().cpu().numpy()
 
     plot_ex5c(test_acc_mri, test_x_out, test_gt_unsqueeze, 'assignment_4/figures/ex5c.png')
@@ -275,11 +276,5 @@ if __name__ == "__main__":
 
 
     # exercise 5d 
+    # The mean squared error between ground truth and CNN output is 0.0187.
 
-    # for i,(kspace, M, gt) in enumerate(tqdm(test_loader)):
-        
-    #     gt_sq = torch.unsqueeze(gt,dim =1)
-    #     print("gt_1: ",gt_sq.shape)
-    #     kspace_sq = torch.unsqueeze(kspace,dim =1)
-    #     acc_mri = torch.fft.ifft2(kspace_sq)   # inverse fft
-    #     print("acc_mri: ",acc_mri.shape)

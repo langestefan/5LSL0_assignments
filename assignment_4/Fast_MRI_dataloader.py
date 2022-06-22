@@ -7,7 +7,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from tqdm import tqdm 
 
-# %% Fast MRI dataset
+# Fast MRI dataset
 class Fast_MRI(Dataset):
     # initialization of the dataset
     def __init__(self, split,data_loc):
@@ -38,7 +38,7 @@ class Fast_MRI(Dataset):
         return kspace, M, gt
 
     
-# %% dataloader for the Fast MRI dataset
+# dataloader for the Fast MRI dataset
 def create_dataloaders(data_loc, batch_size):
     dataset_train = Fast_MRI("train", data_loc)
     dataset_test  = Fast_MRI("test" , data_loc)
@@ -48,7 +48,7 @@ def create_dataloaders(data_loc, batch_size):
     
     return Fast_MRI_train_loader, Fast_MRI_test_loader
 
-# %% test if the dataloaders work
+# test if the dataloaders work
 if __name__ == "__main__":
     # define parameters
     data_loc = 'assignment_4/Fast_MRI_Knee/' #change the datalocation to something that works for you
@@ -82,5 +82,5 @@ if __name__ == "__main__":
     plt.yticks([])
     plt.title('ground truth')
     
-    #plt.savefig("example.png",dpi=300,bbox_inches='tight')
+    plt.savefig("example.png",dpi=300,bbox_inches='tight')
     plt.close()

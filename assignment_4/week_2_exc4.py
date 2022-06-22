@@ -1,3 +1,4 @@
+from sqlalchemy import true
 import torch
 from Fast_MRI_dataloader import create_dataloaders
 from tqdm import tqdm 
@@ -5,115 +6,209 @@ import matplotlib.pyplot as plt
 from torch.fft import fft2, fftshift, ifft2, ifftshift
 import numpy as np
 
+from torch.functional import F
 
-def get_k_space(MRI_image) :
-    # convert MRI image into k-space
-    #k_space = fftshift(fft2(MRI_image))
-    k_space = fft2(MRI_image)
+
+# element wise multiplication of k-space and M
+def apply_mask_k_space(full_k_space, M):
+    """
+    Element wise multiplication of k-space and M
+    -------
+    full_k_space: torch.Tensor
+        full k-space of MRI image
+    M: torch.Tensor
+        mask
+
+    """
+    assert full_k_space.dim() == 3, "full_k_space must be a 3D tensor"
+
+    partial_k_space = torch.mul(full_k_space, M)
+    return  partial_k_space
+
+# convert k-space to MRI image
+def kspace_to_mri(k_space, reverse_shift):
+    """
+    Convert k-space to MRI image
+    -------
+    k_space: torch.Tensor
+        k-space of MRI image
+    """
+    assert k_space.dim() == 3, "k_space must be a 3D tensor"
+
+    if reverse_shift:
+        k_space = ifftshift(k_space, dim=(1, 2))
+
+    MRI_image = ifft2(k_space, dim=(1, 2))
+    MRI_image = torch.abs(MRI_image)
+
+    return MRI_image
+
+# convert MRI image into k-space
+def mri_to_kspace(mri_image, apply_shift=True):
+    """
+    Convert MRI image into k-space.
+    -------
+    MRI_image: torch.Tensor (N, H, W) 
+        Batch of MRI images. N is the batch size, (H, W) is the image size.
+    """
+    assert mri_image.dim() == 3, "mri_image must be a 3D tensor"
+    k_space = fft2(mri_image, dim=(1, 2))
+
+    if apply_shift:
+        k_space = fftshift(k_space, dim=(1, 2))
+
     return k_space
 
-def get_partial_k_space(k_space,M) :
-    # element wise multiplication of k-space and M
-    return  torch.mul(k_space, M)
+# apply soft thresholding
+def soft_threshold(mri_image, threshold):
+    """
+    Apply soft thresholding
+    -------
+    input: torch.Tensor
+        input tensor, stack of (N, H, W) MRI images
+    threshold: float
+        threshold value
+    """
+    assert mri_image.dim() == 3, "mri_image must be a 3D tensor"
 
-def get_accelerate_MRI(k_space) :
-    # convert k-space to MRI image
-    return ifft2(k_space)
+    for idx, image in enumerate(mri_image):
+        mri_image[idx] = torch.sign(image) * torch.max(torch.abs(image) - threshold, torch.zeros_like(image))
 
-def get_accelerate_MRI_final(input) :
-    # convert k-space to MRI image
-    return ifft2(ifftshift(input))
+    return mri_image
 
-def soft_threshold(input, threshold) :
-    idx = torch.abs(input) > threshold
-    input[idx] = input[idx] * (torch.abs(input[idx]) - threshold)/torch.abs(input[idx])
-    input[~idx] = 0
-        
-    return input
 
-def ISTA(mu, shrinkage, K, k_space, M) :
+# execute ISTA algorithm
+def ISTA_MRI(mu, shrinkage, K, partial_k_space, M):
+    """
+    Execute ISTA algorithm
+    -------
+    mu: float
+        step size mu
+    shrinkage: float
+        shrinkage value (lambda)
+    K: int
+        number of iterations
+    partial_k_space: torch.Tensor (N, H, W)
+        partial k-space of MRI image 
+    M: torch.Tensor (N, H, W)
+        k-space sampling mask 
+    """
+    # convert partial_k_space to MRI image
+    y = kspace_to_mri(partial_k_space, reverse_shift=False)
 
-    # get accelerated MRI image from partial k-space
-    y = get_accelerate_MRI(k_space)
-    #y = torch.log(torch.abs(y)+1e-20)
-    
-    image_list = []
+    # initialize 
+    x_t = y
+    FY = partial_k_space
 
-    for idx, (y, M) in enumerate(zip (y,M)):
-    
-        # initialize 
-        x_t = y
-    
-        for i in range(K):
+    # run ISTA
+    for i in range(K):
+        # (1) apply soft thresholding to x_t
+        x_t = soft_threshold(x_t, shrinkage)
 
-            # soft thresholding
-            x_t = soft_threshold(x_t, shrinkage)
-            F_x = get_k_space(x_t)
-            k_space_y = get_k_space(y)
-            
-            z = F_x - mu * get_partial_k_space(F_x, M) + mu * k_space_y
-            if i == K-1:
-                x_t = get_accelerate_MRI_final(z)
-            else:
-                x_t = get_accelerate_MRI(z)
+        # (2) data consistency step abs(Finv(FX - mu*M*FX + mu*FY))
+        FX = mri_to_kspace(x_t, apply_shift=True)         
+        MFX = apply_mask_k_space(FX, M)
 
-        # store the results
-        image_list.append(x_t)
+        z = FX - mu*MFX + mu*FY
+        x_t = kspace_to_mri(z, reverse_shift=False)
 
-    # convert to tensor
-    x_out = torch.stack(image_list,dim=0).float()
+    # store resulting image
+    return x_t
 
-    return x_out
+
+def plot_single_mri_image(mri_image, title, save_path):
+    """
+    Plot single MRI image
+    -------
+    mri_image: torch.Tensor (N, H, W)
+        MRI image
+    title: str
+        title of plot
+    save_path: str
+        path to save image
+    """
+    # plot image
+    plt.figure(figsize=(10, 10))
+    plt.imshow(mri_image.numpy(), cmap="gray")
+    plt.title(title)
+    plt.savefig(save_path)
+    # plt.close()
+
+
+def plot_k_space(k_space, save_path):
+    """	Plot k-space. """
+
+    plt.figure(figsize = (10, 6))
+    plt.imshow(make_plot_friendly(k_space), vmin=-2.3,interpolation='nearest')
+    plt.xticks([])
+    plt.yticks([])
+    plt.title('k-space')
+    plt.savefig(f"{save_path}", dpi=300, bbox_inches='tight')
 
 def plot_ex4c(test_acc_mri, test_x_out, test_gt, save_path):
 
-    plt.figure(figsize = (12,12))
+    plt.figure(figsize = (10, 6))
     for i in range(5):
         plt.subplot(3,5,i+1)
-        plt.imshow(test_acc_mri[i+1,:,:],vmin=-1.1,interpolation='nearest',cmap='gray')
+        plt.imshow(test_acc_mri[i+1,:,:], cmap='gray')
         plt.xticks([])
         plt.yticks([])
-        plt.title('Accelerated MRI')
+        if i == 2:
+            plt.title('Accelerated MRI')
 
         plt.subplot(3,5,i+6)
-        plt.imshow(test_x_out[i+1,:,:],vmin=-0.1,interpolation='nearest',cmap='gray')
+        plt.imshow(test_x_out[i+1,:,:], cmap='gray')
         plt.xticks([])
         plt.yticks([])
-        plt.title('Reconstruction from ISTA')
+        if i == 2:
+            plt.title('ISTA reconstruction')
 
         plt.subplot(3,5,i+11)
-        plt.imshow(test_gt[i+1,:,:],cmap='gray')
+        plt.imshow(test_gt[i+1,:,:], cmap='gray')
         plt.xticks([])
         plt.yticks([])
-        plt.title('Ground truth')
+        if i == 2:
+            plt.title('Ground-truth MRI')
 
-    #plt.savefig(f"{save_path}", dpi=300, bbox_inches='tight')
+    plt.savefig(f"{save_path}", dpi=300, bbox_inches='tight')
     plt.show()
 
+def make_plot_friendly(input_image):
+    """	Increase dynamic range of the k-space image """
+    return torch.log(torch.abs(input_image) + 1e-20)
+
+def calculate_mse(input_image, ground_truth):
+    """	Calculate mean squared error """
+    return torch.mean((input_image - ground_truth)**2)
 
 if __name__ == "__main__":
-
-    mu = 0.5
-    shrinkage = 0.1
-    K = 100
+    # parameters
+    mu = 0.8
+    shrinkage = 0.15
+    K = 30
 
     data_loc = 'assignment_4/Fast_MRI_Knee/' #change the datalocation to something that works for you
     batch_size = 6
 
+    # create dataloaders
     train_loader, test_loader = create_dataloaders(data_loc, batch_size)
-    for i,(kspace, M, gt) in enumerate(tqdm(test_loader)):
+    for i, (partial_kspace, M, gt_mri) in enumerate(test_loader):
         if i == 1:
             break
 
-    x_t = ISTA(mu, shrinkage, K, kspace, M)
-    x_t_friendly = torch.log(torch.abs(x_t)+1e-20)
-    accelerated_mri_input = get_accelerate_MRI(kspace)
-    k_space_x_out = fftshift(fft2(x_t))
-    accerated_plot_friendly = torch.log(torch.abs(accelerated_mri_input )+1e-20)
-    kspace_plot_friendly = torch.log(torch.abs(kspace[2,:,:])+1e-20)
-    k_space_x_out_plot_friendly = torch.log(torch.abs(k_space_x_out[2,:,:])+1e-20)
+    #### exc 4c ####
+    # apply ISTA algorithm to MRI images
+    ista_mri = ISTA_MRI(mu, shrinkage, K, partial_kspace, M)
+    accel_mri = kspace_to_mri(partial_kspace, reverse_shift=True)
 
-    full_k = fftshift(fft2(gt))
-    full_k_friendly = torch.log(torch.abs(full_k[2,:,:])+1e-20)
+    plot_ex4c(accel_mri, ista_mri, gt_mri,'assignment_4/figures/exc_4c.png')
 
-    plot_ex4c(accerated_plot_friendly, x_t, gt,'assignment_4/figures/exc_4c.png')
+    # calculate mse on accelerated MRI images
+    a = 100
+    mse = torch.nn.MSELoss()
+    mse_loss_accelerated_MRI = mse(accel_mri, gt_mri) * a
+    print(f"MSE loss on accelerated MRI images: {mse_loss_accelerated_MRI}")
+
+    # calculate mse on output of ISTA
+    mse_loss_ista = mse(ista_mri, gt_mri) * a
+    print(f"MSE loss ISTA out: {mse_loss_ista}") 

@@ -67,7 +67,7 @@ def calculate_loss(model, data_loader, criterion, device):
 
         # get accelerated MRI image from partial k-space
         acc_mri = ifft2(kspace_unsqueeze)
-        acc_mri = torch.log(torch.abs(acc_mri)+1e-20)
+        acc_mri = torch.abs(acc_mri)
 
         if torch.cuda.is_available():
             device = torch.device('cuda:0')
@@ -137,7 +137,8 @@ def train_model(model, train_loader, valid_loader, optimizer, criterion, n_epoch
 
             # get accelerated MRI image from partial k-space
             acc_mri = ifft2(kspace_unsqueeze)
-            acc_mri = torch.log(torch.abs(acc_mri)+1e-20)
+            #acc_mri = torch.log(torch.abs(acc_mri)+1e-20)
+            acc_mri = torch.abs(acc_mri)
 
             # move to device
             gt_unsqueeze = gt_unsqueeze.to(device)
@@ -168,7 +169,7 @@ def train_model(model, train_loader, valid_loader, optimizer, criterion, n_epoch
 
         # write the model parameters to a file every 5 epochs
         if write_to_file and epoch % 5 == 0:
-            torch.save(model.state_dict(), f"{save_path}_{epoch}_epochs.pth")
+            torch.save(model.state_dict(), f"{save_path}cnn_{epoch}_epochs.pth")
 
     if write_to_file:
         torch.save(model.state_dict(), f"{save_path}_{epoch}_epochs.pth")
@@ -181,13 +182,13 @@ def plot_ex5c(test_acc_mri, test_x_out, test_gt, save_path):
     plt.figure(figsize = (12,12))
     for i in range(5):
         plt.subplot(3,5,i+1)
-        plt.imshow(test_acc_mri[i+1,0,:,:],vmin=-1.4,interpolation='nearest',cmap='gray')
+        plt.imshow(test_acc_mri[i+1,0,:,:],vmin=-1.5, vmax=2, interpolation='bilinear',cmap='gray')
         plt.xticks([])
         plt.yticks([])
         plt.title('Accelerated MRI')
 
         plt.subplot(3,5,i+6)
-        plt.imshow(test_x_out[i+1,0,:,:],vmax=1.4,interpolation='nearest',cmap='gray')
+        plt.imshow(test_x_out[i+1,0,:,:],vmax=2, interpolation='nearest',cmap='gray')
         plt.xticks([])
         plt.yticks([])
         plt.title('Reconstruction from CNN')
@@ -198,7 +199,7 @@ def plot_ex5c(test_acc_mri, test_x_out, test_gt, save_path):
         plt.yticks([])
         plt.title('Ground truth')
 
-    plt.savefig(f"{save_path}", dpi=300, bbox_inches='tight')
+    #plt.savefig(f"{save_path}", dpi=300, bbox_inches='tight')
     plt.show()
     
 
@@ -226,7 +227,7 @@ def plot_loss(train_losses, test_losses, save_path):
     plt.legend(fontsize="x-large")
     plt.grid(True)
     plt.xticks(np.arange(0, num_epochs, 2))
-    plt.savefig(f"{save_path}", dpi=300, bbox_inches='tight')
+    #plt.savefig(f"{save_path}", dpi=300, bbox_inches='tight')
     plt.show()
 
 if __name__ == "__main__":
@@ -241,20 +242,20 @@ if __name__ == "__main__":
     # train the model
     device = torch.device('cuda:0')
     # n_epochs = 10
-    # learning_rate = 1e-4
+    # learning_rate = 5e-5
     # criterion = nn.MSELoss()
     # optimizer = optim.Adam(model.parameters(), lr=learning_rate)
 
-    # model, train_losses, test_losses, test_acc_mri, test_x_out, test_gt = train_model(model, train_loader, test_loader, optimizer, criterion, 
+    # model, train_losses, test_losses = train_model(model, train_loader, test_loader, optimizer, criterion, 
     #                                                 n_epochs, device, write_to_file=True, save_path='assignment_4/models/')
     
-    # # # plot the loss for exercise 5b
-    # plot_loss(train_losses, test_losses, 'assignment_4/figures/ex5b_loss.png')
+    # # plot the loss for exercise 5b
+    # plot_loss(train_losses, test_losses, 'assignment_4/figures/ex5b_loss_v2.png')
 
     # # exercise 5c
 
     # load the trained model
-    model = load_model(model, "assignment_4/models/_9_epochs.pth")
+    model = load_model(model, "assignment_4/models/5_cnn_epochs.pth")
     for i,(kspace, M, gt) in enumerate(tqdm(test_loader)):
         if i == 1:
             break

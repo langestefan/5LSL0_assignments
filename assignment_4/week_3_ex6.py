@@ -20,7 +20,8 @@ if module_path not in sys.path:
 
 # local imports
 from Fast_MRI_dataloader import create_dataloaders
-from week_3_ex5 import CNN_ex5
+from week_3_ex5 import CNN_ex5,plot_loss
+from train import load_model
 
 # set torches random seed
 torch.random.manual_seed(0)
@@ -82,22 +83,25 @@ def plot_ex6c(test_acc_mri, test_x_out, test_gt, save_path):
     plt.figure(figsize = (12,12))
     for i in range(5):
         plt.subplot(3,5,i+1)
-        plt.imshow(test_acc_mri[i+1,0,:,:],vmin=-1.5, vmax=2, interpolation='bilinear',cmap='gray')
+        plt.imshow(test_acc_mri[i+1,0,:,:],cmap='gray')
         plt.xticks([])
         plt.yticks([])
-        plt.title('Accelerated MRI')
+        if i == 2:
+            plt.title('Accelerated MRI')
 
         plt.subplot(3,5,i+6)
-        plt.imshow(test_x_out[i+1,0,:,:],vmax=2.3, interpolation='nearest',cmap='gray')
+        plt.imshow(test_x_out[i+1,0,:,:],vmax=2.3,cmap='gray')
         plt.xticks([])
         plt.yticks([])
-        plt.title('Reconstruction from ProxNet')
+        if i == 2:
+            plt.title('Reconstruction from ProxNet')
 
         plt.subplot(3,5,i+11)
         plt.imshow(test_gt[i+1,0,:,:],cmap='gray')
         plt.xticks([])
         plt.yticks([])
-        plt.title('Ground truth')
+        if i == 2:
+            plt.title('Ground truth')
 
     #plt.savefig(f"{save_path}", dpi=300, bbox_inches='tight')
     plt.show()
@@ -148,8 +152,7 @@ def calculate_loss(model, data_loader, criterion, device):
         
         # calculate loss
         loss += criterion(x_out, gt_unsqueeze).item()
-        if i == 2:
-            break
+
     # return the loss
     return loss / len(data_loader)
 
@@ -192,8 +195,7 @@ def train_ex6c(model, train_loader, valid_loader, optimizer, criterion, n_epochs
 
             # add loss to the total loss
             train_loss += loss.item()
-            if idx == 2:
-                break
+ 
         # calculate validation loss
         valid_loss = calculate_loss(model, valid_loader, criterion, device) # autoencoder 
         # average loss for this epoch = train_loss / n_batches
@@ -216,8 +218,7 @@ def train_ex6c(model, train_loader, valid_loader, optimizer, criterion, n_epochs
 def main():
     # define parameters
     data_loc = 'assignment_4/Fast_MRI_Knee/' # change the datalocation to something that works for you
-    batch_size = 2
-
+    batch_size = 6
     # get the dataloaders
     train_loader, test_loader = create_dataloaders(data_loc, batch_size)
 
@@ -226,7 +227,7 @@ def main():
 
     # train the model
     device = torch.device('cuda:0')
-    n_epochs = 1
+    n_epochs = 10
     learning_rate = 1e-4
     criterion = nn.MSELoss()
     optimizer = optim.Adam(model.parameters(), lr=learning_rate)
@@ -235,7 +236,35 @@ def main():
     # train the model
     model, train_losses, test_losses = train_ex6c(model, train_loader, test_loader, optimizer, criterion, 
                                                     n_epochs, device, write_to_file=True, save_path='assignment_4/models/')
-  
+    # # plot the loss for exercise 6b
+    plot_loss(train_losses, test_losses, 'assignment_4/figures/ex6b_loss.png')
+
+
+    # # load the trained model
+    # model = load_model(model, "assignment_4/models/ProxNet_2_epochs.pth")
+    # for i,(kspace, M, gt) in enumerate(tqdm(test_loader)):
+    #     if i == 1:
+    #         break
+    # # unsqueeze to add channel dimension, (N, 320, 320) -> (N, 1, 320, 320)
+    # test_gt_unsqueeze = torch.unsqueeze(gt,dim =1)
+    # kspace_unsqueeze = torch.unsqueeze(kspace,dim =1)
+    # M_unsqueeze = torch.unsqueeze(M,dim =1)
+
+    # # get accelerated MRI image from partial k-space
+    # test_acc_mri = ifft2(kspace_unsqueeze)
+    # test_acc_mri = torch.abs(test_acc_mri)
+
+    # # get reconstructed image from CNN
+    # test_x_out = model(test_acc_mri,M_unsqueeze)
+    # # detach x_out from GPU
+    # test_x_out = test_x_out.detach().cpu().numpy()
+
+    # plot_ex6c(test_acc_mri, test_x_out, test_gt_unsqueeze, 'assignment_4/figures/ex6c.png')
+
+
+
+    # exercise 6d 
+    # The mean squared error between ground truth and CNN output is 0000.
     
 
 

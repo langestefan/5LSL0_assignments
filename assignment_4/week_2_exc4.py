@@ -87,7 +87,7 @@ def plot_ex4c(test_acc_mri, test_x_out, test_gt, save_path):
         plt.yticks([])
         plt.title('Ground truth')
 
-    plt.savefig(f"{save_path}", dpi=300, bbox_inches='tight')
+    #plt.savefig(f"{save_path}", dpi=300, bbox_inches='tight')
     plt.show()
 
 
@@ -116,4 +116,4 @@ if __name__ == "__main__":
     full_k = fftshift(fft2(gt))
     full_k_friendly = torch.log(torch.abs(full_k[2,:,:])+1e-20)
 
-    plot_ex4c(accerated_plot_friendly, x_t, gt,'assignment_4/figures/exc_4c_test.png')
+    plot_ex4c(accerated_plot_friendly, x_t, gt,'assignment_4/figures/exc_4c.png')

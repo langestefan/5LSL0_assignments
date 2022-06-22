@@ -94,6 +94,7 @@ def plot_loss(train_losses, valid_losses, save_path):
     plt.savefig(f"{save_path}", dpi=300, bbox_inches='tight')
     plt.show()
 
+
 # calculate validation loss
 def calculate_loss(model, data_loader, criterion, device):
     """

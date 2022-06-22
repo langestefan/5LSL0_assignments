@@ -16,10 +16,10 @@ if module_path not in sys.path:
 # local imports
 import MNIST_dataloader
 
-
 # set torches random seed
 torch.random.manual_seed(0)
 
+from train import calculate_loss
 
 
 def plot_examples(clean_images, noisy_images, ista_output, num_examples=10):
@@ -34,8 +34,13 @@ def plot_examples(clean_images, noisy_images, ista_output, num_examples=10):
         Number of examples to plot.
     """
 
+    print("input size: ", noisy_images.shape)
+    print("output size: ", ista_output.shape)
+    print("clean_images size: ", clean_images.shape)
+
+
     # show the examples in a plot
-    plt.figure(figsize=(12, 3))
+    plt.figure(figsize=(17.5, 6))
 
     for i in range(num_examples):
         plt.subplot(3, num_examples, i+1)
@@ -49,12 +54,12 @@ def plot_examples(clean_images, noisy_images, ista_output, num_examples=10):
         plt.yticks([])
         
         plt.subplot(3, num_examples, i + 2*num_examples + 1)
-        plt.imshow(clean_images[i, :, :], cmap='gray')
+        plt.imshow(clean_images[i, :, :], cmap='gray',)
         plt.xticks([])
         plt.yticks([])
     
     plt.tight_layout()
-    #plt.savefig("assignment_4/figures/exercise_1_b.png", dpi=300, bbox_inches='tight')
+    plt.savefig("assignment_4/figures/exc_1a_10digits.png", dpi=300, bbox_inches='tight')
     plt.show()
 
 
@@ -102,6 +107,39 @@ def ISTA(mu, shrinkage, K, y):
     return x_out - 1
 
 
+
+# calculate validation loss for ISTA algorithm
+def calculate_loss_ista(data_loader, criterion, mu, shrinkage, K):
+    """
+    Calculate the loss on the given data set.
+    -------
+    data_loader : torch.utils.data.DataLoader
+        Data loader to use for the data set.
+    criterion : torch.nn.modules.loss
+        Loss function to use.
+    device : torch.device
+        Device to use for the model.
+    -------
+    loss : float    
+        The loss on the data set.
+    """
+
+    # initialize loss
+    loss = 0
+
+    # loop over batches
+    for batch_idx, (x_clean, x_noisy, label) in enumerate(tqdm(data_loader, position=0, leave=False, ascii=False)):
+
+            # forward pass
+            x_out = ISTA(mu, shrinkage, K, x_noisy.squeeze())
+           
+            # calculate loss
+            loss += criterion(x_out.squeeze(), x_clean.squeeze()).item()
+
+    # return the loss
+    return loss / len(data_loader)
+
+
 def main():
     # define parameters
     data_loc = 'data' #change the datalocation to something that works for you
@@ -128,13 +166,14 @@ def main():
     x_ista = ISTA(mu, shrinkage, K, x_noisy_0_to_10)
     print("ista output size: ", x_ista.shape)
 
-    # compute MSE
-    mse = torch.nn.MSELoss()
-    mse_loss = mse(x_ista, x_clean_0_to_10)
-    print("mse loss: ", mse_loss.item())
-
     # plot the results
-    plot_examples(x_clean_0_to_10, x_noisy_0_to_10, x_ista)
+    # plot_examples(x_clean_0_to_10, x_noisy_0_to_10, x_ista)
+
+    # compute MSE on test dataset
+    mse = torch.nn.MSELoss()
+    mse_loss = calculate_loss_ista(test_loader, mse, mu, shrinkage, K)
+
+    print("mse loss: ", mse_loss)
 
 
 

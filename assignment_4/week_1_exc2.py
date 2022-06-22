@@ -23,7 +23,7 @@ if module_path not in sys.path:
 
 # local imports
 import MNIST_dataloader
-from train import train_model, plot_loss, plot_examples
+from train import train_model, plot_loss, plot_examples, load_model
 
 
 # set torches random seed
@@ -49,7 +49,7 @@ def plot_examples(clean_images, noisy_images, ista_output, num_examples=10):
 
 
     # show the examples in a plot
-    plt.figure(figsize=(12, 3))
+    plt.figure(figsize=(17.5, 6))
 
     for i in range(num_examples):
         plt.subplot(3, num_examples, i+1)
@@ -63,12 +63,12 @@ def plot_examples(clean_images, noisy_images, ista_output, num_examples=10):
         plt.yticks([])
         
         plt.subplot(3, num_examples, i + 2*num_examples + 1)
-        plt.imshow(clean_images[i, :, :], cmap='gray')
+        plt.imshow(clean_images[i, :, :], cmap='gray',)
         plt.xticks([])
         plt.yticks([])
     
     plt.tight_layout()
-    #plt.savefig("assignment_4/figures/exercise_1_b.png", dpi=300, bbox_inches='tight')
+    plt.savefig("assignment_4/figures/exc_2b_20epochs.png", dpi=300, bbox_inches='tight')
     plt.show()
 
 class W_2K_1(nn.Module):
@@ -112,10 +112,10 @@ class LISTA(nn.Module):
     
         return x_smooth
 
-    def forward(self, x):
+    def forward(self, y):
         # initialize 
-        y = x
-        x_k = 0
+        # x_k = 0
+        x_k = y
 
         # iterate over the unfolded iterations
         for i in range(self.n_unfolded_iter):
@@ -172,15 +172,15 @@ def main():
     criterion = nn.MSELoss()
     optimizer = optim.Adam(model.parameters(), lr=learning_rate)
 
-    model, train_losses, valid_losses = train_model(model, train_loader, test_loader, optimizer, criterion, 
-                                                    n_epochs, device, write_to_file=True, save_path='assignment_4/models/')
+    # model, train_losses, valid_losses = train_model(model, train_loader, test_loader, optimizer, criterion, 
+    #                                                 n_epochs, device, write_to_file=True, save_path='assignment_4/models/')
 
 
-    # plot the losses for the training and validation
-    plot_loss(train_losses, valid_losses, save_path='assignment_4/figures/' + 'losses_exc2a.png')
+    # # plot the losses for the training and validation
+    # plot_loss(train_losses, valid_losses, save_path='assignment_4/figures/' + 'losses_exc2a.png')
 
     # load the trained model
-    # model = load_model(model, "assignment_4/models/LISTA_epoch15_v2.pth")
+    model = load_model(model, "assignment_4/models/20.pth")
 
     # print shrinkage parameters
     print(model.shrinkage.data)

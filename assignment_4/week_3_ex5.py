@@ -15,16 +15,16 @@ class CNN_ex5(nn.Module):
         # create layers here
         self.conv = nn.Sequential(
             # input is N, 1, 320, 320
-            nn.Conv2d(in_channels=1, out_channels=64, kernel_size=(5, 5), stride=1, padding=2), # N, 64, 320, 320
-            nn.BatchNorm2d(64),
+            nn.Conv2d(in_channels=1, out_channels=16, kernel_size=(5, 5), stride=1, padding=2), # N, 16, 320, 320
+            nn.BatchNorm2d(16),
             nn.ReLU(),
-            nn.Conv2d(in_channels=64, out_channels=64, kernel_size=(5, 5), stride=1, padding=2), # N, 64, 320, 320
-            nn.BatchNorm2d(64),
+            nn.Conv2d(in_channels=16, out_channels=16, kernel_size=(5, 5), stride=1, padding=2), # N, 16, 320, 320
+            nn.BatchNorm2d(16),
             nn.ReLU(),
-            nn.Conv2d(in_channels=64, out_channels=64, kernel_size=(5, 5), stride=1, padding=2), # N, 64, 320, 320
-            nn.BatchNorm2d(64),
+            nn.Conv2d(in_channels=16, out_channels=16, kernel_size=(5, 5), stride=1, padding=2), # N, 16, 320, 320
+            nn.BatchNorm2d(16),
             nn.ReLU(),
-            nn.Conv2d(in_channels=64, out_channels=1, kernel_size=(5, 5), stride=1, padding=2), # N, 1, 320, 320
+            nn.Conv2d(in_channels=16, out_channels=1, kernel_size=(5, 5), stride=1, padding=2), # N, 1, 320, 320
             nn.BatchNorm2d(1),
             nn.Sigmoid()
         )
@@ -169,10 +169,10 @@ def train_model(model, train_loader, valid_loader, optimizer, criterion, n_epoch
 
         # write the model parameters to a file every 5 epochs
         if write_to_file and epoch % 5 == 0:
-            torch.save(model.state_dict(), f"{save_path}cnn_{epoch}_epochs.pth")
+            torch.save(model.state_dict(), f"{save_path}CNN_{epoch}_epochs.pth")
 
     if write_to_file:
-        torch.save(model.state_dict(), f"{save_path}_{epoch}_epochs.pth")
+        torch.save(model.state_dict(), f"{save_path}CNN_{epoch}_epochs.pth")
 
     # return the trained model
     return model, train_losses, valid_losses
@@ -182,22 +182,25 @@ def plot_ex5c(test_acc_mri, test_x_out, test_gt, save_path):
     plt.figure(figsize = (12,12))
     for i in range(5):
         plt.subplot(3,5,i+1)
-        plt.imshow(test_acc_mri[i+1,0,:,:],vmin=-1.5, vmax=2, interpolation='bilinear',cmap='gray')
+        plt.imshow(test_acc_mri[i+1,0,:,:],cmap='gray')
         plt.xticks([])
         plt.yticks([])
-        plt.title('Accelerated MRI')
+        if i == 2:
+            plt.title('Accelerated MRI')
 
         plt.subplot(3,5,i+6)
-        plt.imshow(test_x_out[i+1,0,:,:],vmax=2, interpolation='nearest',cmap='gray')
+        plt.imshow(test_x_out[i+1,0,:,:],vmax=2,cmap='gray')
         plt.xticks([])
         plt.yticks([])
-        plt.title('Reconstruction from CNN')
+        if i == 2:
+            plt.title('Reconstruction from CNN')
 
         plt.subplot(3,5,i+11)
         plt.imshow(test_gt[i+1,0,:,:],cmap='gray')
         plt.xticks([])
         plt.yticks([])
-        plt.title('Ground truth')
+        if i == 2:
+            plt.title('Ground truth')
 
     #plt.savefig(f"{save_path}", dpi=300, bbox_inches='tight')
     plt.show()
@@ -233,7 +236,7 @@ def plot_loss(train_losses, test_losses, save_path):
 if __name__ == "__main__":
     
     data_loc = 'assignment_4/Fast_MRI_Knee/' #change the datalocation to something that works for you
-    batch_size = 6
+    batch_size = 12
 
     train_loader, test_loader = create_dataloaders(data_loc, batch_size)
 
@@ -242,7 +245,7 @@ if __name__ == "__main__":
     # train the model
     device = torch.device('cuda:0')
     # n_epochs = 10
-    # learning_rate = 5e-5
+    # learning_rate = 1e-4
     # criterion = nn.MSELoss()
     # optimizer = optim.Adam(model.parameters(), lr=learning_rate)
 
@@ -254,8 +257,8 @@ if __name__ == "__main__":
 
     # # exercise 5c
 
-    # load the trained model
-    model = load_model(model, "assignment_4/models/5_cnn_epochs.pth")
+    # # load the trained model
+    model = load_model(model, "assignment_4/models/cnn_9_epochs.pth")
     for i,(kspace, M, gt) in enumerate(tqdm(test_loader)):
         if i == 1:
             break
@@ -265,7 +268,7 @@ if __name__ == "__main__":
 
     # get accelerated MRI image from partial k-space
     test_acc_mri = ifft2(kspace_unsqueeze)
-    test_acc_mri = torch.log(torch.abs(test_acc_mri)+1e-20)
+    test_acc_mri = torch.abs(test_acc_mri)
 
     # get reconstructed image from CNN
     test_x_out = model(test_acc_mri)
@@ -277,5 +280,5 @@ if __name__ == "__main__":
 
 
     # exercise 5d 
-    # The mean squared error between ground truth and CNN output is 0.0187.
+    # The mean squared error between ground truth and CNN output is 0.0198343.
 

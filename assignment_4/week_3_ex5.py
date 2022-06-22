@@ -181,13 +181,13 @@ def plot_ex5c(test_acc_mri, test_x_out, test_gt, save_path):
     plt.figure(figsize = (10,10))
     for i in range(5):
         plt.subplot(3,5,i+1)
-        plt.imshow(test_acc_mri[i+1,0,:,:],vmin=-2.3,interpolation='nearest',cmap='gray')
+        plt.imshow(test_acc_mri[i+1,0,:,:],vmin=-1.4,interpolation='nearest',cmap='gray')
         plt.xticks([])
         plt.yticks([])
         plt.title('Accelerated MRI')
 
         plt.subplot(3,5,i+6)
-        plt.imshow(test_x_out[i+1,0,:,:],vmin=0,interpolation='nearest',cmap='gray')
+        plt.imshow(test_x_out[i+1,0,:,:],vmax=1.4,interpolation='nearest',cmap='gray')
         plt.xticks([])
         plt.yticks([])
         plt.title('Reconstruction from CNN')
@@ -198,7 +198,7 @@ def plot_ex5c(test_acc_mri, test_x_out, test_gt, save_path):
         plt.yticks([])
         plt.title('Ground truth')
 
-    plt.savefig(f"{save_path}", dpi=300, bbox_inches='tight')
+    #plt.savefig(f"{save_path}", dpi=300, bbox_inches='tight')
     plt.show()
     
 
@@ -240,21 +240,21 @@ if __name__ == "__main__":
 
     # train the model
     device = torch.device('cuda:0')
-    n_epochs = 10
-    learning_rate = 1e-4
-    criterion = nn.MSELoss()
-    optimizer = optim.Adam(model.parameters(), lr=learning_rate)
+    # n_epochs = 10
+    # learning_rate = 1e-4
+    # criterion = nn.MSELoss()
+    # optimizer = optim.Adam(model.parameters(), lr=learning_rate)
 
-    model, train_losses, test_losses, test_acc_mri, test_x_out, test_gt = train_model(model, train_loader, test_loader, optimizer, criterion, 
-                                                    n_epochs, device, write_to_file=True, save_path='assignment_4/models/')
+    # model, train_losses, test_losses, test_acc_mri, test_x_out, test_gt = train_model(model, train_loader, test_loader, optimizer, criterion, 
+    #                                                 n_epochs, device, write_to_file=True, save_path='assignment_4/models/')
     
-    # # plot the loss for exercise 5b
-    plot_loss(train_losses, test_losses, 'assignment_4/figures/ex5b_loss.png')
+    # # # plot the loss for exercise 5b
+    # plot_loss(train_losses, test_losses, 'assignment_4/figures/ex5b_loss.png')
 
     # # exercise 5c
 
     # load the trained model
-    model = load_model(model, "assignment_4/models/_1_epochs.pth")
+    model = load_model(model, "assignment_4/models/_9_epochs.pth")
     for i,(kspace, M, gt) in enumerate(tqdm(test_loader)):
         if i == 1:
             break

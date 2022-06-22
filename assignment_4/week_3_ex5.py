@@ -178,7 +178,7 @@ def train_model(model, train_loader, valid_loader, optimizer, criterion, n_epoch
 
 def plot_ex5c(test_acc_mri, test_x_out, test_gt, save_path):
 
-    plt.figure(figsize = (10,10))
+    plt.figure(figsize = (12,12))
     for i in range(5):
         plt.subplot(3,5,i+1)
         plt.imshow(test_acc_mri[i+1,0,:,:],vmin=-1.4,interpolation='nearest',cmap='gray')
@@ -198,7 +198,7 @@ def plot_ex5c(test_acc_mri, test_x_out, test_gt, save_path):
         plt.yticks([])
         plt.title('Ground truth')
 
-    #plt.savefig(f"{save_path}", dpi=300, bbox_inches='tight')
+    plt.savefig(f"{save_path}", dpi=300, bbox_inches='tight')
     plt.show()
     
 

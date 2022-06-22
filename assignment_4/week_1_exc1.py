@@ -65,7 +65,7 @@ def softthreshold(x, shrinkage):
     # compare each pixels in x with shrinkage value
     for i in range(H):
         for j in range(W):
-            if x[i,j] > shrinkage:
+            if np.abs(x[i,j]) > shrinkage:
                 x[i,j] = ((np.abs(x[i,j]) - shrinkage)/np.abs(x[i,j]))*x[i,j]
             else:
                 x[i,j] = 0
@@ -78,7 +78,7 @@ def ISTA(mu, shrinkage, K, y):
     I = np.identity(H)
 
     # initialize 
-    input_images = y
+    input_images = y + 1
     x_k = np.zeros((H, W))
 
     image_list = []
@@ -99,7 +99,7 @@ def ISTA(mu, shrinkage, K, y):
     # convert to tensor
     x_out = torch.from_numpy(np.array(image_list)).float()
 
-    return x_out
+    return x_out - 1
 
 
 def main():
@@ -119,10 +119,10 @@ def main():
 
     print("input size: ", x_noisy_0_to_10.shape)
 
-    # ISTA parameters
-    mu = 1.2
-    shrinkage = 0.6
-    K = 100
+    # ISTA parameters working
+    mu = 0.3
+    shrinkage = 0.2
+    K = 10
 
     # ISTA
     x_ista = ISTA(mu, shrinkage, K, x_noisy_0_to_10)

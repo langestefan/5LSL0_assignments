@@ -228,6 +228,7 @@ def test_ex2c(model, criterion, test_loader):
         x_ista = model(x_noisy)
         loss = criterion(x_ista,x_clean)
         LISTA_mse_losses += loss.item()
+        loss = 0
    
     print(f'test_loss = {LISTA_mse_losses/len(test_loader)}') 
 

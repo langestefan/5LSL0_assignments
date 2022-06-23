@@ -181,6 +181,41 @@ def calculate_mse(input_image, ground_truth):
     """	Calculate mean squared error """
     return torch.mean((input_image - ground_truth)**2)
 
+
+# calculate validation loss for ISTA algorithm
+def calculate_loss_ista(data_loader, criterion, mu, shrinkage, K, apply_ista=True):
+    """
+    Calculate the loss on the given data set.
+    -------
+    data_loader : torch.utils.data.DataLoader
+        Data loader to use for the data set.
+    criterion : torch.nn.modules.loss
+        Loss function to use.
+    device : torch.device
+        Device to use for the model.
+    -------
+    loss : float    
+        The loss on the data set.
+    """
+
+    # initialize loss
+    loss = 0
+
+    # loop over batches
+    for i, (partial_kspace, M, gt_mri) in enumerate(tqdm(data_loader, position=0, leave=False, ascii=False)):
+
+            # forward pass
+            if apply_ista:
+                ista_mri = ISTA_MRI(mu, shrinkage, K, partial_kspace, M)
+            else:
+                ista_mri = kspace_to_mri(partial_kspace, reverse_shift=False)
+           
+            # calculate loss
+            loss += criterion(ista_mri, gt_mri)
+
+    # return the loss
+    return loss / len(data_loader)
+
 if __name__ == "__main__":
     # parameters
     mu = 0.8
@@ -192,23 +227,23 @@ if __name__ == "__main__":
 
     # create dataloaders
     train_loader, test_loader = create_dataloaders(data_loc, batch_size)
-    for i, (partial_kspace, M, gt_mri) in enumerate(test_loader):
-        if i == 1:
-            break
+    # for i, (partial_kspace, M, gt_mri) in enumerate(test_loader):
+    #     if i == 1:
+    #         break
 
     #### exc 4c ####
     # apply ISTA algorithm to MRI images
-    ista_mri = ISTA_MRI(mu, shrinkage, K, partial_kspace, M)
-    accel_mri = kspace_to_mri(partial_kspace, reverse_shift=True)
+    # ista_mri = ISTA_MRI(mu, shrinkage, K, partial_kspace, M)
+    # accel_mri = kspace_to_mri(partial_kspace, reverse_shift=True)
 
-    plot_ex4c(accel_mri, ista_mri, gt_mri,'assignment_4/figures/exc_4c.png')
+    # plot_ex4c(accel_mri, ista_mri, gt_mri,'assignment_4/figures/exc_4c.png')
 
+    #### exc 4d ####
     # calculate mse on accelerated MRI images
-    a = 100
     mse = torch.nn.MSELoss()
-    mse_loss_accelerated_MRI = mse(accel_mri, gt_mri) * a
+    mse_loss_accelerated_MRI = calculate_loss_ista(test_loader, mse, mu, shrinkage, K, apply_ista=False)
     print(f"MSE loss on accelerated MRI images: {mse_loss_accelerated_MRI}")
 
     # calculate mse on output of ISTA
-    mse_loss_ista = mse(ista_mri, gt_mri) * a
+    mse_loss_ista = calculate_loss_ista(test_loader, mse, mu, shrinkage, K, apply_ista=True)
     print(f"MSE loss ISTA out: {mse_loss_ista}") 

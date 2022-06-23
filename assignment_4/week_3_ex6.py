@@ -26,23 +26,54 @@ from train import load_model
 # set torches random seed
 torch.random.manual_seed(0)
 
-def get_k_space(MRI_image) :
-    # convert MRI image into k-space
-    #k_space = fftshift(fft2(MRI_image))
-    k_space = fft2(MRI_image)
+# element wise multiplication of k-space and M
+def apply_mask_k_space(full_k_space, M):
+    """
+    Element wise multiplication of k-space and M
+    -------
+    full_k_space: torch.Tensor
+        full k-space of MRI image
+    M: torch.Tensor
+        mask
+    """
+    assert full_k_space.dim() == 3, "full_k_space must be a 3D tensor"
+
+    partial_k_space = torch.mul(full_k_space, M)
+    return  partial_k_space
+
+# convert k-space to MRI image
+def kspace_to_mri(k_space, reverse_shift):
+    """
+    Convert k-space to MRI image
+    -------
+    k_space: torch.Tensor
+        k-space of MRI image
+    """
+    assert k_space.dim() == 3, "k_space must be a 3D tensor"
+
+    if reverse_shift:
+        k_space = ifftshift(k_space, dim=(1, 2))
+
+    MRI_image = ifft2(k_space, dim=(1, 2))
+    MRI_image = torch.abs(MRI_image)
+
+    return MRI_image
+
+# convert MRI image into k-space
+def mri_to_kspace(mri_image, apply_shift=True):
+    """
+    Convert MRI image into k-space.
+    -------
+    MRI_image: torch.Tensor (N, H, W) 
+        Batch of MRI images. N is the batch size, (H, W) is the image size.
+    """
+    assert mri_image.dim() == 3, "mri_image must be a 3D tensor"
+    k_space = fft2(mri_image, dim=(1, 2))
+
+    if apply_shift:
+        k_space = fftshift(k_space, dim=(1, 2))
+
     return k_space
-
-def get_partial_k_space(k_space,M) :
-    # element wise multiplication of k-space and M
-    return  torch.mul(k_space, M)
-
-def get_accelerate_MRI(k_space) :
-    # convert k-space to MRI image
-    return ifft2(k_space)
-
-def get_accelerate_MRI_final(input) :
-    # convert k-space to MRI image
-    return ifft2(ifftshift(input))
 
 class ProxNet(nn.Module):
     def __init__(self, n_unfolded_iter, mu_init):
@@ -54,25 +85,39 @@ class ProxNet(nn.Module):
         # module lists for the unfolded iterations
         self.proximal_operator = nn.ModuleList([CNN_ex5() for _ in range(self.n_unfolded_iter)])
     
-    def forward(self, y, M):
+    def forward(self, partial_k_space, M):
+        '''
+        input partial_k_space, M is mask
+        '''
 
-        # initialize 
+        # convert partial_k_space to MRI image
+        y = kspace_to_mri(partial_k_space, reverse_shift=False)
+        
+
+        # initialize ,
         x_t = y
+        FY = partial_k_space
         # iterate over the unfolded iterations
         for i in range(self.n_unfolded_iter):
-
-            F_x = get_k_space(x_t)
-            k_space_y = get_k_space(y)
-
-            z = F_x - self.mu[i] * get_partial_k_space(F_x, M) + self.mu[i] * k_space_y
             
-            if i == self.n_unfolded_iter:
-                x_t = get_accelerate_MRI_final(z)
-            else:
-                x_t = get_accelerate_MRI(z)
+            # convert MRI image into k-space
+            F_x = mri_to_kspace(x_t, apply_shift=True)
+            
 
-            x_t = torch.abs(x_t)
+            # data consistency term abs(Finv(FX - mu*M*FX + mu*FY))
+            z = F_x - self.mu[i] * apply_mask_k_space(F_x, M) + self.mu[i] * FY
+            
+            # convert k-space to MRI image
+            x_t = kspace_to_mri(z, reverse_shift=False)
+
+            # unsqueeze to add channel dimension, (N, 320, 320) -> (N, 1, 320, 320)
+            x_t = torch.unsqueeze(x_t,dim =1)
+
+            # apply the proximal operator
             x_t = self.proximal_operator[i](x_t)
+
+            # squeeze to reduce channel dimension, (N, 1, 320, 320) -> (N, 320, 320)
+            x_t = torch.squeeze(x_t,dim =1)
 
         #print("mu: ", self.mu.data)
        
@@ -83,21 +128,21 @@ def plot_ex6c(test_acc_mri, test_x_out, test_gt, save_path):
     plt.figure(figsize = (12,12))
     for i in range(5):
         plt.subplot(3,5,i+1)
-        plt.imshow(test_acc_mri[i+1,0,:,:],cmap='gray')
+        plt.imshow(test_acc_mri[i+1,:,:],cmap='gray')
         plt.xticks([])
         plt.yticks([])
         if i == 2:
             plt.title('Accelerated MRI')
 
         plt.subplot(3,5,i+6)
-        plt.imshow(test_x_out[i+1,0,:,:],vmax=2.3,cmap='gray')
+        plt.imshow(test_x_out[i+1,:,:],vmax=2.3,cmap='gray')
         plt.xticks([])
         plt.yticks([])
         if i == 2:
             plt.title('Reconstruction from ProxNet')
 
         plt.subplot(3,5,i+11)
-        plt.imshow(test_gt[i+1,0,:,:],cmap='gray')
+        plt.imshow(test_gt[i+1,:,:],cmap='gray')
         plt.xticks([])
         plt.yticks([])
         if i == 2:
@@ -131,28 +176,19 @@ def calculate_loss(model, data_loader, criterion, device):
 
     # loop over batches
     # go over all minibatches
-    for i,(partial_kspace, M, gt) in enumerate(tqdm(data_loader)):
-        
-        # unsqueeze to add channel dimension, (N, 320, 320) -> (N, 1, 320, 320)
-        gt_unsqueeze = torch.unsqueeze(gt,dim =1)
-        par_kspace_unsqueeze = torch.unsqueeze(partial_kspace,dim =1)
-        M_unsqueeze = torch.unsqueeze(M,dim =1)
-
-        # get accelerated MRI image from partial k-space
-        acc_mri = ifft2(par_kspace_unsqueeze)
-        #acc_mri = torch.abs(acc_mri)
-
+    for i,(partial_kspace, M, gt) in enumerate(tqdm(data_loader,position=0, leave=False, ascii=False)):
+  
         if torch.cuda.is_available():
             device = torch.device('cuda:0')
-            gt_unsqueeze, acc_mri, M_unsqueeze  = [x.cuda() for x in [gt_unsqueeze, acc_mri, M_unsqueeze]]
+            gt, partial_kspace, M = [x.cuda() for x in [gt, partial_kspace, M]]
             model.to(device)
 
         # forward pass
-        x_out = model(acc_mri,M_unsqueeze)
+        ProxNet_out = model(partial_kspace,M)
         
         # calculate loss
-        loss += criterion(x_out, gt_unsqueeze).item()
-
+        loss += criterion(ProxNet_out, gt).item()
+  
     # return the loss
     return loss / len(data_loader)
 
@@ -167,26 +203,17 @@ def train_ex6c(model, train_loader, valid_loader, optimizer, criterion, n_epochs
         train_loss = 0
         valid_loss = 0
 
-        for idx,(partial_kspace, M, gt) in enumerate(tqdm(train_loader)):
+        for idx,(partial_kspace, M, gt) in enumerate(tqdm(train_loader, position=0, leave=False, ascii=False)):
             
-            # unsqueeze to add channel dimension, (N, 320, 320) -> (N, 1, 320, 320)
-            gt_unsqueeze = torch.unsqueeze(gt,dim =1)
-            partial_kspace_unsqueeze = torch.unsqueeze(partial_kspace,dim =1)
-            M_unsqueeze = torch.unsqueeze(M,dim =1)
-
-            # get accelerated MRI image from partial k-space
-            acc_mri = ifft2(partial_kspace_unsqueeze)
-            #acc_mri = torch.abs(acc_mri)
-
             # move to device
-            gt_unsqueeze = gt_unsqueeze.to(device)
-            acc_mri = acc_mri.to(device)
+            gt = gt.to(device)
+            M = M.to(device)
+            partial_kspace = partial_kspace.to(device)
             model = model.to(device)
-            M_unsqueeze = M_unsqueeze.to(device)
 
             # forward pass
-            x_out = model(acc_mri,M_unsqueeze)
-            loss = criterion(x_out, gt_unsqueeze) 
+            ProxNet_out = model(partial_kspace,M)
+            loss = criterion(ProxNet_out, gt) 
         
             # backward pass, update weights
             optimizer.zero_grad()
@@ -195,7 +222,7 @@ def train_ex6c(model, train_loader, valid_loader, optimizer, criterion, n_epochs
 
             # add loss to the total loss
             train_loss += loss.item()
- 
+
         # calculate validation loss
         valid_loss = calculate_loss(model, valid_loader, criterion, device) # autoencoder 
         # average loss for this epoch = train_loss / n_batches
@@ -222,12 +249,12 @@ def main():
     # get the dataloaders
     train_loader, test_loader = create_dataloaders(data_loc, batch_size)
 
-    model = ProxNet(n_unfolded_iter=5, mu_init=2.0)
+    model = ProxNet(n_unfolded_iter=5, mu_init=0.5)
     #print(model)
 
     # train the model
     device = torch.device('cuda:0')
-    n_epochs = 10
+    n_epochs = 20
     learning_rate = 1e-4
     criterion = nn.MSELoss()
     optimizer = optim.Adam(model.parameters(), lr=learning_rate)

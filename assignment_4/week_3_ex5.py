@@ -179,7 +179,7 @@ def train_model(model, train_loader, valid_loader, optimizer, criterion, n_epoch
 
 def plot_ex5c(test_acc_mri, test_x_out, test_gt, save_path):
 
-    plt.figure(figsize = (12,12))
+    plt.figure(figsize = (10, 6))
     for i in range(5):
         plt.subplot(3,5,i+1)
         plt.imshow(test_acc_mri[i+1,0,:,:],cmap='gray')
@@ -202,7 +202,7 @@ def plot_ex5c(test_acc_mri, test_x_out, test_gt, save_path):
         if i == 2:
             plt.title('Ground truth')
 
-    #plt.savefig(f"{save_path}", dpi=300, bbox_inches='tight')
+    plt.savefig(f"{save_path}", dpi=300, bbox_inches='tight')
     plt.show()
     
 
@@ -236,7 +236,7 @@ def plot_loss(train_losses, test_losses, save_path):
 if __name__ == "__main__":
     
     data_loc = 'assignment_4/Fast_MRI_Knee/' #change the datalocation to something that works for you
-    batch_size = 12
+    batch_size = 32
 
     train_loader, test_loader = create_dataloaders(data_loc, batch_size)
 
@@ -244,20 +244,22 @@ if __name__ == "__main__":
 
     # train the model
     device = torch.device('cuda:0')
-    # n_epochs = 10
-    # learning_rate = 1e-4
-    # criterion = nn.MSELoss()
-    # optimizer = optim.Adam(model.parameters(), lr=learning_rate)
+    n_epochs = 1
+    learning_rate = 1e-4
+    criterion = nn.MSELoss()
+    optimizer = optim.Adam(model.parameters(), lr=learning_rate)
 
     # model, train_losses, test_losses = train_model(model, train_loader, test_loader, optimizer, criterion, 
     #                                                 n_epochs, device, write_to_file=True, save_path='assignment_4/models/')
-    
+    # # move model to cpu
+    # model = model.cpu()
+
     # # plot the loss for exercise 5b
-    # plot_loss(train_losses, test_losses, 'assignment_4/figures/ex5b_loss_v2.png')
+    # plot_loss(train_losses, test_losses, 'assignment_4/figures/ex5b_loss.png')
 
     # # exercise 5c
 
-    # # load the trained model
+    # load the trained model
     model = load_model(model, "assignment_4/models/cnn_9_epochs.pth")
     for i,(kspace, M, gt) in enumerate(tqdm(test_loader)):
         if i == 1:

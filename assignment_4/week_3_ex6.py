@@ -135,7 +135,7 @@ def plot_ex6c(test_acc_mri, test_x_out, test_gt, save_path):
             plt.title('Accelerated MRI')
 
         plt.subplot(3,5,i+6)
-        plt.imshow(test_x_out[i+1,:,:],vmax=2.3,cmap='gray')
+        plt.imshow(test_x_out[i+1,:,:],vmax=2,cmap='gray')
         plt.xticks([])
         plt.yticks([])
         if i == 2:
@@ -254,44 +254,39 @@ def main():
 
     # train the model
     device = torch.device('cuda:0')
-    n_epochs = 20
-    learning_rate = 1e-4
-    criterion = nn.MSELoss()
-    optimizer = optim.Adam(model.parameters(), lr=learning_rate)
+    # n_epochs = 20
+    # learning_rate = 1e-4
+    # criterion = nn.MSELoss()
+    # optimizer = optim.Adam(model.parameters(), lr=learning_rate)
 
     
-    # train the model
-    model, train_losses, test_losses = train_ex6c(model, train_loader, test_loader, optimizer, criterion, 
-                                                    n_epochs, device, write_to_file=True, save_path='assignment_4/models/')
-    # # plot the loss for exercise 6b
-    plot_loss(train_losses, test_losses, 'assignment_4/figures/ex6b_loss.png')
+    # # train the model
+    # model, train_losses, test_losses = train_ex6c(model, train_loader, test_loader, optimizer, criterion, 
+    #                                                 n_epochs, device, write_to_file=True, save_path='assignment_4/models/')
+    # # # plot the loss for exercise 6b
+    # plot_loss(train_losses, test_losses, 'assignment_4/figures/ex6b_loss.png')
 
 
-    # # load the trained model
-    # model = load_model(model, "assignment_4/models/ProxNet_2_epochs.pth")
-    # for i,(kspace, M, gt) in enumerate(tqdm(test_loader)):
-    #     if i == 1:
-    #         break
-    # # unsqueeze to add channel dimension, (N, 320, 320) -> (N, 1, 320, 320)
-    # test_gt_unsqueeze = torch.unsqueeze(gt,dim =1)
-    # kspace_unsqueeze = torch.unsqueeze(kspace,dim =1)
-    # M_unsqueeze = torch.unsqueeze(M,dim =1)
+    # load the trained model
+    model = load_model(model, "assignment_4/models/ProxNet_19_epochs.pth")
+    for i,(partial_kspace, M, gt) in enumerate(tqdm(test_loader)):
+        if i == 1:
+            break
+ 
+    # get reconstructed image from ProxNet
+    test_x_out = model(partial_kspace,M)
+    # detach x_out from GPU
+    test_x_out = test_x_out.detach().cpu().numpy()
 
-    # # get accelerated MRI image from partial k-space
-    # test_acc_mri = ifft2(kspace_unsqueeze)
-    # test_acc_mri = torch.abs(test_acc_mri)
+    # get input accelerated MRI iamge
+    accelerated_MRI = kspace_to_mri(partial_kspace,reverse_shift=True)
 
-    # # get reconstructed image from CNN
-    # test_x_out = model(test_acc_mri,M_unsqueeze)
-    # # detach x_out from GPU
-    # test_x_out = test_x_out.detach().cpu().numpy()
-
-    # plot_ex6c(test_acc_mri, test_x_out, test_gt_unsqueeze, 'assignment_4/figures/ex6c.png')
+    plot_ex6c(accelerated_MRI, test_x_out, gt, 'assignment_4/figures/ex6c.png')
 
 
 
     # exercise 6d 
-    # The mean squared error between ground truth and CNN output is 0000.
+    # The mean squared error between ground truth and ProxNet output for entrie test dataset is 0.01634212054039647.
     
 
 

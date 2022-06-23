@@ -12,6 +12,7 @@ import sys
 import torch
 import torch.nn as nn
 import torch.optim as optim
+from torch.optim.lr_scheduler import ExponentialLR, StepLR
 
 # local imports
 module_path = os.path.abspath(os.path.join('..'))
@@ -20,7 +21,7 @@ if module_path not in sys.path:
 
 # local imports
 from Fast_MRI_dataloader import create_dataloaders
-from week_3_ex5 import CNN_ex5,plot_loss
+from week_3_ex5 import ConvNet, plot_loss
 from train import load_model
 
 # set torches random seed
@@ -76,14 +77,22 @@ def mri_to_kspace(mri_image, apply_shift=True):
     return k_space
 
 class ProxNet(nn.Module):
-    def __init__(self, n_unfolded_iter, mu_init):
+    def __init__(self, n_unfolded_iter, mu_init, use_pretrained_convnet=False):
         super(ProxNet, self).__init__()
 
         self.n_unfolded_iter = n_unfolded_iter
         self.mu = nn.Parameter(torch.full((n_unfolded_iter,), mu_init))
+        self.sigmoid = nn.Sigmoid()
 
         # module lists for the unfolded iterations
-        self.proximal_operator = nn.ModuleList([CNN_ex5() for _ in range(self.n_unfolded_iter)])
+        self.proximal_operator = nn.ModuleList([ConvNet() for _ in range(self.n_unfolded_iter)])
+
+        # load pretrained weights for ConvNet
+        if use_pretrained_convnet:
+            for i in range(self.n_unfolded_iter):
+                self.proximal_operator[i].load_state_dict(torch.load("assignment_4/models/convnet_epoch9.pth"))
+
+
     
     def forward(self, partial_k_space, M):
         '''
@@ -92,32 +101,28 @@ class ProxNet(nn.Module):
 
         # convert partial_k_space to MRI image
         y = kspace_to_mri(partial_k_space, reverse_shift=False)
-        
 
-        # initialize ,
+        # initialize 
         x_t = y
         FY = partial_k_space
+
         # iterate over the unfolded iterations
         for i in range(self.n_unfolded_iter):
             
+            # (1) apply the proximal operator
+            x_t = torch.unsqueeze(x_t, dim=1)       # unsqueeze (N, 320, 320) -> (N, 1, 320, 320)
+            x_t = self.proximal_operator[i](x_t)            
+            x_t = torch.squeeze(x_t, dim=1)         # squeeze (N, 1, 320, 320) -> (N, 320, 320)
+
             # convert MRI image into k-space
             FX = mri_to_kspace(x_t, apply_shift=True)
             MFX = apply_mask_k_space(FX, M)
             
-            # data consistency term abs(Finv(FX - mu*M*FX + mu*FY))
-            z = FX - self.mu[i] * MFX + self.mu[i] * FY
-
-            # convert k-space to MRI image
+            # (2) data consistency term abs(Finv(FX - mu*M*FX + mu*FY))
+            mu = self.sigmoid(self.mu[i])
+            z = FX - mu*MFX + mu*FY
             x_t = kspace_to_mri(z, reverse_shift=False)
 
-            # unsqueeze to add channel dimension, (N, 320, 320) -> (N, 1, 320, 320)
-            x_t = torch.unsqueeze(x_t,dim =1)
-
-            # apply the proximal operator
-            x_t = self.proximal_operator[i](x_t)
-
-            # squeeze to reduce channel dimension, (N, 1, 320, 320) -> (N, 320, 320)
-            x_t = torch.squeeze(x_t,dim =1)
 
         #print("mu: ", self.mu.data)
        
@@ -125,7 +130,7 @@ class ProxNet(nn.Module):
 
 def plot_ex6c(test_acc_mri, test_x_out, test_gt, save_path):
 
-    plt.figure(figsize = (12,12))
+    plt.figure(figsize = (10, 6))
     for i in range(5):
         plt.subplot(3,5,i+1)
         plt.imshow(test_acc_mri[i+1,:,:],cmap='gray')
@@ -135,7 +140,7 @@ def plot_ex6c(test_acc_mri, test_x_out, test_gt, save_path):
             plt.title('Accelerated MRI')
 
         plt.subplot(3,5,i+6)
-        plt.imshow(test_x_out[i+1,:,:],vmax=2,cmap='gray')
+        plt.imshow(test_x_out[i+1,:,:],cmap='gray')
         plt.xticks([])
         plt.yticks([])
         if i == 2:
@@ -148,7 +153,7 @@ def plot_ex6c(test_acc_mri, test_x_out, test_gt, save_path):
         if i == 2:
             plt.title('Ground truth')
 
-    #plt.savefig(f"{save_path}", dpi=300, bbox_inches='tight')
+    plt.savefig(f"{save_path}", dpi=300, bbox_inches='tight')
     plt.show()
 
 # calculate validation loss
@@ -176,7 +181,7 @@ def calculate_loss(model, data_loader, criterion, device):
 
     # loop over batches
     # go over all minibatches
-    for i,(partial_kspace, M, gt) in enumerate(tqdm(data_loader,position=0, leave=False, ascii=False)):
+    for i, (partial_kspace, M, gt) in enumerate(tqdm(data_loader,position=0, leave=False, ascii=False)):
   
         if torch.cuda.is_available():
             device = torch.device('cuda:0')
@@ -196,6 +201,10 @@ def train_ex6c(model, train_loader, valid_loader, optimizer, criterion, n_epochs
     # to keep track of loss
     train_losses = []
     valid_losses = []
+
+    # define LR scheduler
+    scheduler = StepLR(optimizer, step_size=1, gamma=0.95)
+
     # go over all epochs
     for epoch in range(n_epochs):
         print(f"\nTraining Epoch {epoch}:")
@@ -236,6 +245,11 @@ def train_ex6c(model, train_loader, valid_loader, optimizer, criterion, n_epochs
         if write_to_file and epoch % 5 == 0:
             torch.save(model.state_dict(), f"{save_path}ProxNet_{epoch}_epochs.pth")
 
+        # update the learning rate
+        scheduler.step()
+
+        print(f"Learning rate is {scheduler.get_last_lr()}")
+
     if write_to_file:
         torch.save(model.state_dict(), f"{save_path}ProxNet_{epoch}_epochs.pth")
 
@@ -245,30 +259,43 @@ def train_ex6c(model, train_loader, valid_loader, optimizer, criterion, n_epochs
 def main():
     # define parameters
     data_loc = 'assignment_4/Fast_MRI_Knee/' # change the datalocation to something that works for you
-    batch_size = 6
+    batch_size = 8
+
     # get the dataloaders
     train_loader, test_loader = create_dataloaders(data_loc, batch_size)
 
-    model = ProxNet(n_unfolded_iter=5, mu_init=0.5)
-    #print(model)
+    model = ProxNet(n_unfolded_iter=5, mu_init=1.0, use_pretrained_convnet=True)
+    print(model)
+
+    # print all parameters
+    # for name, param in model.named_parameters():
+    #     print(name, param.shape)
 
     # train the model
     device = torch.device('cuda:0')
-    # n_epochs = 20
-    # learning_rate = 1e-4
-    # criterion = nn.MSELoss()
-    # optimizer = optim.Adam(model.parameters(), lr=learning_rate)
+    n_epochs = 20
+    learning_rate = 1e-3
+    criterion = nn.MSELoss(reduction='mean')
 
+    # set individual higher learning rate for mode.mu
+    optimizer = optim.Adam([{'params': model.proximal_operator.parameters(), 'lr': learning_rate},
+                            {'params': model.mu, 'lr': learning_rate*10}],
+                            weight_decay=1e-5, eps=1e-8, amsgrad=True)
     
-    # # train the model
-    # model, train_losses, test_losses = train_ex6c(model, train_loader, test_loader, optimizer, criterion, 
-    #                                                 n_epochs, device, write_to_file=True, save_path='assignment_4/models/')
-    # # # plot the loss for exercise 6b
-    # plot_loss(train_losses, test_losses, 'assignment_4/figures/ex6b_loss.png')
+    # train the model
+    model, train_losses, test_losses = train_ex6c(model, train_loader, test_loader, optimizer, criterion, 
+                                                  n_epochs, device, write_to_file=True, save_path='assignment_4/models/')
+
+    # move model to cpu
+    model = model.cpu()
+                                                      
+    # plot the loss for exercise 6b
+    plot_loss(train_losses, test_losses, 'assignment_4/figures/ex6b_loss.png')
 
 
-    # load the trained model
-    model = load_model(model, "assignment_4/models/ProxNet_19_epochs.pth")
+    # # load the trained model
+    model = load_model(model, "assignment_4/models/ProxNet_9_epochs.pth")
+    model.eval()
     for i,(partial_kspace, M, gt) in enumerate(tqdm(test_loader)):
         if i == 1:
             break
@@ -284,9 +311,13 @@ def main():
     plot_ex6c(accelerated_MRI, test_x_out, gt, 'assignment_4/figures/ex6c.png')
 
 
+    #### exc 6d ####
+    # calculate mse on accelerated MRI images
+    mse = torch.nn.MSELoss()
 
-    # exercise 6d 
-    # The mean squared error between ground truth and ProxNet output for entrie test dataset is 0.01634212054039647.
+    # calculate mse on output of ISTA
+    mse_loss_proxnet_testset = calculate_loss(model, test_loader, mse, device)
+    print(f"MSE loss on test set is {mse_loss_proxnet_testset}")
     
 
 

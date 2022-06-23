@@ -1,6 +1,8 @@
 import torch
 import torch.nn as nn
 import torch.optim as optim
+from torch.optim.lr_scheduler import ExponentialLR
+
 from Fast_MRI_dataloader import create_dataloaders
 from tqdm import tqdm 
 import matplotlib.pyplot as plt
@@ -9,9 +11,11 @@ import numpy as np
 from train import load_model
 
 
-class CNN_ex5(nn.Module):
+
+class ConvNet(nn.Module):
     def __init__(self):
-        super(CNN_ex5,self).__init__()
+        super(ConvNet, self).__init__()
+        
         # create layers here
         self.conv = nn.Sequential(
             # input is N, 1, 320, 320
@@ -26,13 +30,78 @@ class CNN_ex5(nn.Module):
             nn.ReLU(),
             nn.Conv2d(in_channels=16, out_channels=1, kernel_size=(5, 5), stride=1, padding=2), # N, 1, 320, 320
             nn.BatchNorm2d(1),
-            nn.Sigmoid()
+            nn.ReLU()
         )
        
 
     def forward(self, x):
        
         return self.conv(x)
+
+# class ConvNet(nn.Module):
+#     def __init__(self):
+#         super(ConvNet, self).__init__()
+#         # input is # N, 1, 320, 320        
+#         # hidden layer 1, downsampleing by a factor of 2
+
+#         self.conv1 = nn.Sequential(            
+#             nn.Conv2d(in_channels=1, out_channels=16, kernel_size=(5, 5), stride=1, padding=2),     # N, 16, 320, 320
+#             nn.BatchNorm2d(16),
+#             nn.ReLU(inplace=True),
+#             nn.MaxPool2d(kernel_size=(2, 2), stride=2))                                             # N, 16, 160, 160
+
+#         # latent
+#         self.conv2 = nn.Sequential(          
+#             nn.Conv2d(in_channels=16, out_channels=32, kernel_size=(5, 5), stride=1, padding=2),    # N, 16, 160, 160
+#             nn.BatchNorm2d(32),
+#             nn.ReLU(inplace=True),
+#             nn.MaxPool2d(kernel_size=(2, 2), stride=2))                                             # N, 32, 80, 80
+
+#         # hidden layer 2, upsampling by a factor of 2
+#         self.conv3 = nn.Sequential(            
+#             nn.Upsample(scale_factor=(2,2), mode='nearest'),                                        # N, 32, 32, 32
+#             nn.Conv2d(in_channels=32, out_channels=16, kernel_size=(5, 5), stride=1, padding=2),    # N, 16, 160, 160
+#             nn.BatchNorm2d(16),
+#             nn.ReLU(inplace=True))
+
+#         # upsampling
+#         self.conv4 = nn.Sequential(            
+#             # output layer
+#             nn.Upsample(scale_factor=(2,2), mode='nearest'),                                        # N, 16, 320, 320
+#             nn.Conv2d(in_channels=16, out_channels=1, kernel_size=(5, 5), stride=1, padding=2),     # N, 1, 32, 32
+#             nn.ReLU(inplace=True)
+#         )
+       
+       
+
+#     def forward(self, x):
+#         x = self.conv1(x)
+#         print("conv1: ", x.shape)
+#         x = self.conv2(x)
+#         print("conv2: ", x.shape)
+#         x = self.conv3(x)
+#         print("conv3: ", x.shape)
+#         x = self.conv4(x)
+#         print("conv4: ", x.shape)
+
+#         return x
+
+def plot_single_mri_image(mri_image, title, save_path):
+    """
+    Plot single MRI image
+    -------
+    mri_image: torch.Tensor (N, H, W)
+        MRI image
+    title: str
+        title of plot
+    save_path: str
+        path to save image
+    """
+    # plot image
+    plt.figure(figsize=(10, 10))
+    plt.imshow(mri_image.numpy(), cmap="gray")
+    plt.title(title)
+    plt.savefig(save_path)
 
 # calculate validation loss
 def calculate_loss(model, data_loader, criterion, device):
@@ -59,15 +128,14 @@ def calculate_loss(model, data_loader, criterion, device):
 
     # loop over batches
     # go over all minibatches
-    for i,(kspace, M, gt) in enumerate(tqdm(data_loader)):
+    for i, (partial_kspace, M, gt) in enumerate(tqdm(data_loader)):
         
-        # unsqueeze to add channel dimension, (N, 320, 320) -> (N, 1, 320, 320)
-        gt_unsqueeze = torch.unsqueeze(gt,dim =1)
-        kspace_unsqueeze = torch.unsqueeze(kspace,dim =1)
-
         # get accelerated MRI image from partial k-space
-        acc_mri = ifft2(kspace_unsqueeze)
-        acc_mri = torch.abs(acc_mri)
+        acc_mri = torch.abs(ifft2(partial_kspace))
+
+        # unsqueeze to add channel dimension, (N, 320, 320) -> (N, 1, 320, 320)
+        gt_unsqueeze = torch.unsqueeze(gt, dim=1)
+        acc_mri = torch.unsqueeze(acc_mri, dim=1)
 
         if torch.cuda.is_available():
             device = torch.device('cuda:0')
@@ -121,6 +189,9 @@ def train_model(model, train_loader, valid_loader, optimizer, criterion, n_epoch
     train_losses = []
     valid_losses = []
 
+    # define LR scheduler
+    scheduler = ExponentialLR(optimizer, gamma=0.95)
+
     # go over all epochs
     for epoch in range(n_epochs):
         print(f"\nTraining Epoch {epoch}:")
@@ -130,6 +201,13 @@ def train_model(model, train_loader, valid_loader, optimizer, criterion, n_epoch
 
         # go over all minibatches
         for i,(kspace, M, gt) in enumerate(tqdm(train_loader)):
+
+            # copmute min max of gt
+            gt_min = torch.min(gt)
+            gt_max = torch.max(gt)
+            print(f"gt_min: {gt_min}, gt_max: {gt_max}")
+
+
             
             # unsqueeze to add channel dimension, (N, 320, 320) -> (N, 1, 320, 320)
             gt_unsqueeze = torch.unsqueeze(gt,dim =1)
@@ -170,6 +248,11 @@ def train_model(model, train_loader, valid_loader, optimizer, criterion, n_epoch
         # write the model parameters to a file every 5 epochs
         if write_to_file and epoch % 5 == 0:
             torch.save(model.state_dict(), f"{save_path}CNN_{epoch}_epochs.pth")
+
+        # update the learning rate
+        scheduler.step()
+        # print the new learning rate
+        print(f"Learning rate is {scheduler.get_last_lr()}")
 
     if write_to_file:
         torch.save(model.state_dict(), f"{save_path}CNN_{epoch}_epochs.pth")
@@ -230,50 +313,52 @@ def plot_loss(train_losses, test_losses, save_path):
     plt.legend(fontsize="x-large")
     plt.grid(True)
     plt.xticks(np.arange(0, num_epochs, 2))
-    #plt.savefig(f"{save_path}", dpi=300, bbox_inches='tight')
+    plt.savefig(f"{save_path}", dpi=300, bbox_inches='tight')
     plt.show()
 
 if __name__ == "__main__":
     
     data_loc = 'assignment_4/Fast_MRI_Knee/' #change the datalocation to something that works for you
-    batch_size = 32
+    batch_size = 8
 
     train_loader, test_loader = create_dataloaders(data_loc, batch_size)
 
-    model = CNN_ex5()
+    model = ConvNet()
 
     # train the model
     device = torch.device('cuda:0')
-    n_epochs = 1
-    learning_rate = 1e-4
+    n_epochs = 10
+    learning_rate = 1e-3
     criterion = nn.MSELoss()
-    optimizer = optim.Adam(model.parameters(), lr=learning_rate)
+    optimizer = optim.Adam(model.parameters(), lr=learning_rate, weight_decay=1e-6)
 
-    # model, train_losses, test_losses = train_model(model, train_loader, test_loader, optimizer, criterion, 
-    #                                                 n_epochs, device, write_to_file=True, save_path='assignment_4/models/')
-    # # move model to cpu
-    # model = model.cpu()
+    model, train_losses, test_losses = train_model(model, train_loader, test_loader, optimizer, criterion, 
+                                                    n_epochs, device, write_to_file=True, save_path='assignment_4/models/')
+    # move model to cpu
+    model = model.cpu()
 
-    # # plot the loss for exercise 5b
-    # plot_loss(train_losses, test_losses, 'assignment_4/figures/ex5b_loss.png')
+    # plot the loss for exercise 5b
+    plot_loss(train_losses, test_losses, 'assignment_4/figures/exc_5b_loss.png')
 
-    # # exercise 5c
+    # exercise 5c
 
-    # load the trained model
-    model = load_model(model, "assignment_4/models/cnn_9_epochs.pth")
-    for i,(kspace, M, gt) in enumerate(tqdm(test_loader)):
+    # # load the trained model
+    # model = load_model(model, "assignment_4/models/cnn_19_epochs.pth")
+    for i, (partial_kspace, M, gt) in enumerate(tqdm(test_loader)):
         if i == 1:
             break
-    # unsqueeze to add channel dimension, (N, 320, 320) -> (N, 1, 320, 320)
-    test_gt_unsqueeze = torch.unsqueeze(gt,dim =1)
-    kspace_unsqueeze = torch.unsqueeze(kspace,dim =1)
 
     # get accelerated MRI image from partial k-space
-    test_acc_mri = ifft2(kspace_unsqueeze)
-    test_acc_mri = torch.abs(test_acc_mri)
+    test_acc_mri = torch.abs(ifft2(partial_kspace))
+    print("shape of test_acc_mri: ", test_acc_mri.shape)
+
+    # unsqueeze to add channel dimension, (N, 320, 320) -> (N, 1, 320, 320)
+    test_acc_mri = test_acc_mri.unsqueeze(1)
+    test_gt_unsqueeze = gt.unsqueeze(1)
 
     # get reconstructed image from CNN
     test_x_out = model(test_acc_mri)
+
     # detach x_out from GPU
     test_x_out = test_x_out.detach().cpu().numpy()
 

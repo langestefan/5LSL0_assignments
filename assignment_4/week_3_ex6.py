@@ -128,6 +128,25 @@ class ProxNet(nn.Module):
        
         return x_t
 
+class ConvNet_6e(nn.Module):
+    def __init__(self, n_unfolded_iter, use_pretrained_convnet=False):
+        super(ConvNet_6e, self).__init__()
+
+        self.n_unfolded_iter = n_unfolded_iter
+        # module lists for the unfolded iterations
+        self.ConvNet = nn.ModuleList([ConvNet() for _ in range(self.n_unfolded_iter)])
+
+        # load pretrained weights for ConvNet
+        if use_pretrained_convnet:
+            for i in range(self.n_unfolded_iter):
+                self.ConvNet[i].load_state_dict(torch.load("assignment_4/models/convnet_epoch9.pth"))
+    
+    def forward(self,x):
+        for i in range(self.n_unfolded_iter):
+            x = self.ConvNet[i](x)
+        return x
+
+
 def plot_ex6c(test_acc_mri, test_x_out, test_gt, save_path):
 
     plt.figure(figsize = (10, 6))
@@ -319,6 +338,8 @@ def main():
     mse_loss_proxnet_testset = calculate_loss(model, test_loader, mse, device)
     print(f"MSE loss on test set is {mse_loss_proxnet_testset}")
     
+    #### exc 6e ####
+
 
 
 if __name__ == "__main__":

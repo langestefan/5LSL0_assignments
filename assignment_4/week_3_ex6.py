@@ -101,12 +101,12 @@ class ProxNet(nn.Module):
         for i in range(self.n_unfolded_iter):
             
             # convert MRI image into k-space
-            F_x = mri_to_kspace(x_t, apply_shift=True)
+            FX = mri_to_kspace(x_t, apply_shift=True)
+            MFX = apply_mask_k_space(FX, M)
             
-
             # data consistency term abs(Finv(FX - mu*M*FX + mu*FY))
-            z = F_x - self.mu[i] * apply_mask_k_space(F_x, M) + self.mu[i] * FY
-            
+            z = FX - self.mu[i] * MFX + self.mu[i] * FY
+
             # convert k-space to MRI image
             x_t = kspace_to_mri(z, reverse_shift=False)
 
